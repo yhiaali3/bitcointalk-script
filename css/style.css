@@ -1,0 +1,105 @@
+body {
+    min-width: 357px;
+}
+
+.logo {
+    background: #ddd;
+    padding: 5px;
+    margin: 0;
+    font-size: 15pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo img {
+    margin-right: 0.4em;
+}
+
+.text-center {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 12pt;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.w-50 {
+    width: 50%;
+}
+
+.w-33 {
+    width: 33.333%;
+}
+
+.btn-group button {
+    border: 1px solid #777;
+    cursor: pointer;
+    float: left;
+    color: black;
+    padding: 7px 16px;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    text-align: left;
+}
+
+.flex {
+    display: flex;
+}
+
+.btn-group button:first-child {
+    border-right: 0;
+}
+
+.btn-group button:hover, .btn-group button:active {
+    background-color: #ddd;
+}
+.btn-group button span {
+    font-size: 10pt;
+}
+
+.btn-group:after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+.circle {
+    height: 10px;
+    width: 10px;
+    background: #fff;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+}
+.circle-on {
+    background: #009900!important;
+}
+.circle-on span {
+    font-weight: bold;
+}
+.circle-off {
+    background: #ff6666!important;
+}
+.circle-off span {
+    font-weight: bold;
+}
+.red {
+    color: red;
+}
+.hidden {
+    display: none;
+}
+a, a:hover {
+    color: #000;
+}
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
