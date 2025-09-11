@@ -8,127 +8,131 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div class="text-center logo">
-    <img src="icons/icon32.png" alt="Bitcointalk Extension"> Bitcointalk Script
-</div>
-
-<div id="not" class="hidden">
-    <div class="text-center">
-        <h1 class="red">This extension is only for Bitcointalk</h1>
-        <a class="" href="https://bitcointalk.org" target="_blank">
-            <h3>Open Bitcointalk</h3>
-        </a>
+    <div class="text-center logo">
+        <img src="icons/icon32.png" alt="Bitcointalk Extension"> Bitcointalk Script
     </div>
-</div>
-<div id="menu">
-    <div class="text-center">
-        <h1>Theme</h1>
-        <div class="btn-group w-100 theme">
-            <button class="w-50" data-key="theme" data-value="on">
-                <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Default</span>
-            </button>
-            <button class="w-50" data-key="theme" data-value="1">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Dark 1</span>
-            </button>
-            <button class="w-50" data-key="theme" data-value="2">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Dark 2</span>
-            </button>
-            <button class="w-50" data-key="theme" data-value="3">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Dark 3</span>
-            </button>
-            <button class="w-50" data-key="theme" data-value="4">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Green</span>
-            </button>
-            <button class="w-50" data-key="theme" data-value="5">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Light</span>
-            </button>
-        </div>
 
-        <div class="flex">
-            <div class="w-50">
-                <div class="btn-group w-100 signature">
-                    <h1>Signature block</h1>
-                    <button data-key="signature" data-value="on">
-                        <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <span>ON</span>
-                    </button>
-                    <button data-key="signature" data-value="off">
-                        <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <span>OFF</span>
-                    </button>
+    <div id="not" class="hidden">
+        <div class="text-center">
+            <h1 class="red">This extension is only for Bitcointalk</h1>
+            <a class="" href="https://bitcointalk.org" target="_blank">
+                <h3>Open Bitcointalk</h3>
+            </a>
+        </div>
+    </div>
+    <div id="menu">
+        <div class="text-center">
+            <h1>Theme</h1>
+            <div class="btn-group w-100 theme">
+                <button class="w-50" data-key="theme" data-value="on">
+                    <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Default</span>
+                </button>
+                <button class="w-50" data-key="theme" data-value="1">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Dark 1</span>
+                </button>
+                <button class="w-50" data-key="theme" data-value="2">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Dark 2</span>
+                </button>
+                <button class="w-50" data-key="theme" data-value="3">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Dark 3</span>
+                </button>
+                <button class="w-50" data-key="theme" data-value="4">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Green</span>
+                </button>
+                <button class="w-50" data-key="theme" data-value="5">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Light</span>
+                </button>
+            </div>
+
+            <div class="flex">
+                <div class="w-50">
+                    <div class="btn-group w-100 signature">
+                        <h1>Signature block</h1>
+                        <button data-key="signature" data-value="on">
+                            <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                            <span>ON</span>
+                        </button>
+                        <button data-key="signature" data-value="off">
+                            <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                            <span>OFF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-50">
+                    <div class="btn-group w-100 avatar">
+                        <h1>Avatar block</h1>
+                        <button data-key="avatar" data-value="on">
+                            <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                            <span>ON</span>
+                        </button>
+                        <button data-key="avatar" data-value="off">
+                            <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                            <span>OFF</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <div class="w-50">
-                <div class="btn-group w-100 avatar">
-                    <h1>Avatar block</h1>
-                    <button data-key="avatar" data-value="on">
-                        <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <span>ON</span>
-                    </button>
-                    <button data-key="avatar" data-value="off">
-                        <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                        <span>OFF</span>
-                    </button>
-                </div>
+            <h1>Show Bitcoin/Ethereum Price</h1>
+            <div class="btn-group w-100 price">
+                <button class="w-50" data-key="price" data-value="on">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>ON</span>
+                </button>
+                <button class="w-50" data-key="price" data-value="off">
+                    <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>OFF</span>
+                </button>
             </div>
-        </div>
 
-        <h1>Show Bitcoin/Ethereum Price</h1>
-        <div class="btn-group w-100 price">
-            <button class="w-50" data-key="price" data-value="on">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>ON</span>
-            </button>
-            <button class="w-50" data-key="price" data-value="off">
-                <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>OFF</span>
-            </button>
-        </div>
+            <h1>Pins Post or Comment</h1>
+            <div class="btn-group w-100 pins">
+                <button class="w-50" data-key="pins" data-value="on">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>ON</span>
+                </button>
+                <button class="w-50" data-key="pins" data-value="off">
+                    <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>OFF</span>
+                </button>
+            </div>
 
-        <h1>Pins Post or Comment</h1>
-        <div class="btn-group w-100 pins">
-            <button class="w-50" data-key="pins" data-value="on">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>ON</span>
-            </button>
-            <button class="w-50" data-key="pins" data-value="off">
-                <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>OFF</span>
-            </button>
-        </div>
+            <h1>Font-size / <span id="zoom">100</span>%</h1>
+            <div class="btn-group w-100 zoom">
+                <button class="w-33" data-key="zoom" data-value="on">
+                    <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>Default</span>
+                </button>
+                <button class="w-33" data-key="zoom" data-value="plus">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>+ Plus</span>
+                </button>
+                <button class="w-33" data-key="zoom" data-value="minus">
+                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <span>- Minus</span>
+                </button>
+            </div>
 
-        <h1>Font-size / <span id="zoom">100</span>%</h1>
-        <div class="btn-group w-100 zoom">
-            <button class="w-33" data-key="zoom" data-value="on">
-                <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>Default</span>
-            </button>
-            <button class="w-33" data-key="zoom" data-value="plus">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>+ Plus</span>
-            </button>
-            <button class="w-33" data-key="zoom" data-value="minus">
-                <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <span>- Minus</span>
-            </button>
         </div>
-
     </div>
-</div>
-<hr>
-<a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
-<br>
-Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> - Version 2.5
-<br>
-Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> - Version 3
-<script src="js/jquery-3.3.1.min.js"></script>
-<script src="js/popup.js"></script>
+    <hr>
+    <a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
+    <br>
+    Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> - Version 2.5
+    <br>
+    Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> - Version 3
+    
+    <br>
+    <a href="https://bitcointalk.org/index.php?topic=5558295" target="_blank">The Edit post on Bitcointalk</a>
+
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/popup.js"></script>
 </body>
 </html>
