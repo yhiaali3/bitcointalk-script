@@ -1,7 +1,7 @@
 {
   "name": "Bitcointalk Script",
   "short_name": "Bitcointalk-Script",
-  "version": "3",
+  "version": "3.1",
   "manifest_version": 3,
   "description": "Extension specific to Bitcointalk - Synthesis script, all in one",
   "icons": {
