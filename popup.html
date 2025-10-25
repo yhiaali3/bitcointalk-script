@@ -6,6 +6,44 @@
     <link href="icons/icon16.png" rel="shortcut icon">
     <meta name="viewport" content="width=device-width, initial-scale=1 user-scalable=no">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Slider styles - green track */
+        .zoom-slider {
+            width: 100%;
+            margin: 10px 0 5px 0;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #28a745 0%, #28a745 50%, #ddd 50%, #ddd 100%);
+            outline: none;
+        }
+        .zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #28a745;
+            box-shadow: 0 0 2px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        .zoom-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #28a745;
+            box-shadow: 0 0 2px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        .zoom-value {
+            font-weight: bold;
+            color: #28a745;
+            margin-left: 6px;
+        }
+    </style>
 </head>
 <body>
     <div class="text-center logo">
@@ -104,20 +142,27 @@
                 </button>
             </div>
 
-            <h1>Font-size / <span id="zoom">100</span>%</h1>
-            <div class="btn-group w-100 zoom">
-                <button class="w-33" data-key="zoom" data-value="on">
+            <h1>Page Direction</h1>
+            <div class="btn-group w-100 direction">
+                <button class="w-50" data-key="direction" data-value="ltr">
                     <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Default</span>
+                    <span>Left to Right (LTR)</span>
                 </button>
-                <button class="w-33" data-key="zoom" data-value="plus">
+                <button class="w-50" data-key="direction" data-value="rtl">
                     <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>+ Plus</span>
+                    <span>Right to Left (RTL)</span>
                 </button>
-                <button class="w-33" data-key="zoom" data-value="minus">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>- Minus</span>
-                </button>
+            </div>
+
+            <h1>Font-size / <span id="zoom">100</span>%</h1>
+            <div>
+                <!-- Slider: min 50% to max 200% step 5 -->
+                <input id="zoomSlider" class="zoom-slider" type="range" min="50" max="200" step="5" value="100" data-key="zoom">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <small>50%</small>
+                    <span class="zoom-value" id="zoomValue">100%</span>
+                    <small>200%</small>
+                </div>
             </div>
 
         </div>
