@@ -103,3 +103,14 @@ a {
     color: #007bff;
     text-decoration: none;
 }
+
+.slider-container {
+    width: 90%;
+    margin: 10px auto;
+}
+
+#zoomSlider {
+    width: 100%;
+    cursor: pointer;
+}
+

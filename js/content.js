@@ -20,6 +20,9 @@ const Bitcointalk = {
             case "pins":
                 this.pinsPost(value);
                 break;
+            case "direction":
+                this.toggleDirection(value);
+                break;
         }
     },
     setStorage: function (key, value) {
@@ -86,21 +89,48 @@ const Bitcointalk = {
         }
     },
     zoomFontSize: function (value, event) {
+        // event === 0 -> change requested from popup (click/slider)
+        // event !== 0 -> init/load from storage (page load)
         if (event === 0) {
-            let newFontSize = !isNaN(parseInt(document.body.style.zoom)) ? parseInt(document.body.style.zoom) : 100;
-            if (value === "plus") {
-                newFontSize += 5;
-            } else if (value === "minus") {
-                newFontSize -= 5;
+            // If value is numeric (from slider), set directly
+            if (!isNaN(parseInt(value))) {
+                let newFontSize = parseInt(value);
+                this.setStorage('zoom', newFontSize);
+                document.body.style.zoom = newFontSize + "%";
+                if (document.documentElement) document.documentElement.style.zoom = newFontSize + "%";
             } else {
-                newFontSize = 100;
+                // fallback to original plus/minus/on behavior
+                let newFontSize = !isNaN(parseInt(document.body.style.zoom)) ? parseInt(document.body.style.zoom) : 100;
+                if (value === "plus") {
+                    newFontSize += 5;
+                } else if (value === "minus") {
+                    newFontSize -= 5;
+                } else {
+                    newFontSize = 100;
+                }
+                this.setStorage('zoom', newFontSize);
+                document.body.style.zoom = newFontSize + "%";
+                if (document.documentElement) document.documentElement.style.zoom = newFontSize + "%";
             }
-            this.setStorage('zoom', newFontSize);
-            document.body.style.zoom = newFontSize + "%";
         } else {
-            this.getAnStorage('zoom', function (res) {
-                document.body.style.zoom = (!isNaN(parseInt(res)) ? parseInt(res) : 100) + "%";
-            });
+            // On page load: prefer using the value passed (if numeric), otherwise read from storage.
+            const applyZoom = (res) => {
+                let parsed = !isNaN(parseInt(res)) ? parseInt(res) : null;
+                if (parsed === null && !isNaN(parseInt(value))) {
+                    parsed = parseInt(value);
+                }
+                let finalZoom = parsed !== null ? parsed : 100;
+                document.body.style.zoom = finalZoom + "%";
+                if (document.documentElement) document.documentElement.style.zoom = finalZoom + "%";
+            };
+
+            if (!isNaN(parseInt(value))) {
+                applyZoom(value);
+            } else {
+                this.getAnStorage('zoom', function (res) {
+                    applyZoom(res);
+                });
+            }
         }
     },
     toggleMerit: function () {
@@ -475,7 +505,377 @@ const Bitcointalk = {
             let dialogPrice = document.getElementsByClassName("dialog-price");
             if (dialogPrice.length > 0) dialogPrice[0].remove();
         }
-    }
+    },
+    // New: toggle page direction (rtl / ltr)
+    toggleDirection: function (value) {
+        // value expected 'rtl' or 'ltr'
+        try {
+            if (value === 'rtl') {
+                if (document.documentElement) document.documentElement.setAttribute('dir', 'rtl');
+                if (document.body) document.body.style.direction = 'rtl';
+            } else if (value === 'ltr') {
+                if (document.documentElement) document.documentElement.setAttribute('dir', 'ltr');
+                if (document.body) document.body.style.direction = 'ltr';
+            } else {
+                // if something else, reset to default (ltr)
+                if (document.documentElement) document.documentElement.removeAttribute('dir');
+                if (document.body) document.body.style.direction = '';
+            }
+        } catch (e) {
+            console.error('toggleDirection error', e);
+        }
+    },
+
+    // Quick Quote feature integrated (updated positioning & robustness)
+    initQuickQuote: function () {
+        (function () {
+            'use strict';
+
+            // Prevent double-injection if content script runs multiple times
+            if (window.__bitcointalkCopyQuoteInjected) return;
+            window.__bitcointalkCopyQuoteInjected = true;
+
+            // Inject minimal CSS to style the button
+            const style = document.createElement('style');
+            style.textContent = `
+                /* Use fixed positioning and high z-index so the button follows viewport coordinates.
+                   position:fixed + coordinates based on getBoundingClientRect() works reliably
+                   across browser zoom, CSS zoom (document.body.style.zoom) and transform-based scaling
+                   in most common setups. */
+                .__cq-btn {
+                    position: fixed;
+                    display: none;
+                    z-index: 2147483647;
+                    background: #e7eaef;
+                    color: #000;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    padding: 6px 10px;
+                    border-radius: 4px;
+                    box-shadow: 2px 2px 6px rgba(0,0,0,0.12);
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 700;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    transition: transform .12s ease, opacity .12s ease;
+                }
+                .__cq-btn.__cq-hidden { opacity: 0; transform: scale(0.98); pointer-events: none; }
+            `;
+            document.head.appendChild(style);
+
+            const btn = document.createElement('button');
+            btn.className = '__cq-btn __cq-hidden';
+            btn.type = 'button';
+            btn.setAttribute('aria-hidden', 'true');
+            btn.textContent = '❝ Copy Quote';
+            document.body.appendChild(btn);
+
+            function debounce(fn, wait = 30) {
+                let t;
+                return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); };
+            }
+
+            function hideButton() {
+                btn.style.display = 'none';
+                btn.classList.add('__cq-hidden');
+                btn.setAttribute('aria-hidden', 'true');
+            }
+
+            function showButton() {
+                btn.style.display = 'block';
+                btn.classList.remove('__cq-hidden');
+                btn.setAttribute('aria-hidden', 'false');
+            }
+
+            function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+            // Calculate and set the button position relative to the selection using viewport coordinates.
+            // Important: we use position:fixed on the button and coordinates directly from getClientRects()
+            // (viewport space), so we DON'T add scroll offsets. This makes the button resilient to
+            // browser zoom, CSS zoom and transform scaling of content.
+            function updateButtonPositionForSelection(selection) {
+                if (!selection || selection.isCollapsed) { hideButton(); return; }
+                let range;
+                try {
+                    range = selection.getRangeAt(0);
+                } catch (e) {
+                    hideButton(); return;
+                }
+
+                const rects = range.getClientRects();
+                let rect = (rects && rects.length) ? rects[rects.length - 1] : range.getBoundingClientRect();
+                if (!rect || (rect.width === 0 && rect.height === 0)) { hideButton(); return; }
+
+                const gap = 8;
+                // rect.left / rect.bottom are viewport coordinates; since button is fixed we use them directly
+                let left = rect.left;
+                let top = rect.bottom + gap;
+
+                // Ensure button visible to measure it
+                const prevDisplay = btn.style.display;
+                btn.style.left = '0px';
+                btn.style.top = '0px';
+                btn.style.display = 'block';
+                const btnBox = btn.getBoundingClientRect();
+                btn.style.display = prevDisplay || (btn.classList.contains('__cq-hidden') ? 'none' : 'block');
+
+                const vw = window.innerWidth || document.documentElement.clientWidth;
+                const vh = window.innerHeight || document.documentElement.clientHeight;
+
+                // Clamp horizontally within viewport (with small margin)
+                left = clamp(left, 8, vw - btnBox.width - 8);
+
+                // If not enough space below, place above selection
+                if (top + btnBox.height > vh - 8) {
+                    top = rect.top - btnBox.height - gap;
+                }
+
+                // Final clamp vertically
+                top = clamp(top, 8, vh - btnBox.height - 8);
+
+                // Apply CSS fixed coordinates
+                btn.style.left = `${Math.round(left)}px`;
+                btn.style.top = `${Math.round(top)}px`;
+
+                showButton();
+            }
+
+            // Clipboard helpers with fallback
+            function fallbackCopyTextToClipboard(text) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = 0;
+                textArea.style.left = 0;
+                textArea.style.width = "2em";
+                textArea.style.height = "2em";
+                textArea.style.padding = 0;
+                textArea.style.border = "none";
+                textArea.style.outline = "none";
+                textArea.style.boxShadow = "none";
+                textArea.style.background = "transparent";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+
+                try {
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return successful;
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                    return false;
+                }
+            }
+
+            async function copyToClipboard(text) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        return true;
+                    } catch (e) {
+                        // fallback below
+                    }
+                }
+                return fallbackCopyTextToClipboard(text);
+            }
+
+            // Build a safe text fragment for URL fragment (approximation)
+            function safeEncode(str) {
+                return encodeURIComponent(str).replace(/'/g, '%27');
+            }
+            function generateTextFragment(text) {
+                const cleanText = text.replace(/\s+/g, ' ').trim();
+                const words = cleanText.split(' ').filter(Boolean);
+                if (words.length <= 8) {
+                    return safeEncode(cleanText);
+                }
+                const textStart = words.slice(0, 4).join(' ');
+                const textEnd = words.slice(-4).join(' ');
+                return `${safeEncode(textStart)},${safeEncode(textEnd)}`;
+            }
+
+            function getFormattedDateString() {
+                const date = new Date();
+                const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                const month = months[date.getMonth()];
+                const day = date.getDate();
+                const year = date.getFullYear();
+                return `${month} ${day}, ${year}`;
+            }
+
+            // Process selected text into BBCode quote and copy
+            function processQuote(postDiv, selectedText) {
+                try {
+                    let contentTd = postDiv.closest('td.td_headerandpost') || postDiv.querySelector('td.td_headerandpost') || (postDiv.classList.contains('td_headerandpost') ? postDiv : null);
+                    if (!contentTd) {
+                        contentTd = postDiv.closest('td');
+                    }
+                    if (!contentTd) throw new Error("Could not find post container");
+
+                    const authorTd = contentTd.previousElementSibling;
+                    let authorName = "Unknown";
+                    if (authorTd && authorTd.classList && authorTd.classList.contains('poster_info')) {
+                        const bElement = authorTd.querySelector('b');
+                        if (bElement) authorName = bElement.textContent.trim();
+                    } else {
+                        const possibleName = contentTd.querySelector('.username, .poster_info b, .poster > b');
+                        if (possibleName) authorName = possibleName.textContent.trim();
+                    }
+
+                    let permalink = "";
+                    const subjectDiv = contentTd.querySelector('div.subject');
+                    if (subjectDiv) {
+                        const linkElem = subjectDiv.querySelector('a');
+                        if (linkElem) permalink = linkElem.href;
+                    }
+                    if (!permalink) {
+                        const anchorLink = contentTd.querySelector('a[href*="#msg"]');
+                        if (anchorLink) permalink = anchorLink.href;
+                    }
+                    if (permalink) {
+                        const parts = permalink.split('#');
+                        let cleanBase = parts[0].split(';')[0];
+                        if (parts[1]) permalink = cleanBase + '#' + parts[1];
+                    }
+
+                    let rawDate = "";
+                    if (subjectDiv && subjectDiv.parentElement) {
+                        const smallTextDiv = subjectDiv.parentElement.querySelector('.smalltext');
+                        if (smallTextDiv) rawDate = smallTextDiv.textContent.trim();
+                    }
+                    if (rawDate && rawDate.startsWith("Today")) {
+                        const fullDate = getFormattedDateString();
+                        rawDate = rawDate.replace("Today", fullDate).replace(" at ", ", ");
+                    }
+
+                    const fragment = generateTextFragment(selectedText);
+                    const dateStr = rawDate || "Unknown Date";
+                    const authorStr = authorName || "Unknown Author";
+
+                    const finalUrl = permalink ? `${permalink}#:~:text=${fragment}` : `#:~:text=${fragment}`;
+                    const quoteHeader = `[url=${finalUrl}]${authorStr} on ${dateStr}[/url]`;
+                    const bbcode = `[quote="${quoteHeader}"]\n${selectedText}\n[/quote]`;
+
+                    copyToClipboard(bbcode).then(success => {
+                        const originalText = btn.textContent;
+                        if (success) {
+                            btn.textContent = "Copied!";
+                            btn.style.backgroundColor = "#dff0d8";
+                            btn.style.color = "#3c763d";
+                            setTimeout(() => {
+                                btn.textContent = originalText;
+                                btn.style.backgroundColor = "#e7eaef";
+                                btn.style.color = "#000";
+                                hideButton();
+                            }, 1000);
+                        } else {
+                            btn.textContent = "Copy failed";
+                            btn.style.backgroundColor = "#f2dede";
+                            setTimeout(() => {
+                                btn.textContent = originalText;
+                                btn.style.backgroundColor = "#e7eaef";
+                                btn.style.color = "#000";
+                                hideButton();
+                            }, 1500);
+                        }
+                    });
+
+                } catch (err) {
+                    console.error("Quote Error:", err);
+                    btn.textContent = "Error";
+                    btn.style.backgroundColor = "#f2dede";
+                    setTimeout(hideButton, 1500);
+                }
+            }
+
+            // Show button on selection (mouseup) if selection inside a post
+            document.addEventListener('mouseup', function (e) {
+                const selection = window.getSelection();
+                const selectedText = selection.toString().trim();
+
+                if (selectedText.length < 1) {
+                    hideButton();
+                    return;
+                }
+
+                let node = selection.anchorNode;
+                if (!node) {
+                    hideButton();
+                    return;
+                }
+                if (node.nodeType === 3) node = node.parentNode;
+
+                const postDiv = node.closest('div.post') || node.closest('td.td_headerandpost');
+
+                if (!postDiv) {
+                    hideButton();
+                    return;
+                }
+
+                try {
+                    updateButtonPositionForSelection(selection);
+                } catch (err) {
+                    hideButton();
+                    return;
+                }
+
+                btn.onclick = function () {
+                    processQuote(postDiv, selectedText);
+                };
+            });
+
+            // Hide when clicking elsewhere (but allow clicking the button)
+            document.addEventListener('mousedown', function (e) {
+                if (e.target !== btn && !btn.contains(e.target)) {
+                    // slight delay to allow click on button to register
+                    setTimeout(() => {
+                        const sel = document.getSelection();
+                        if (!sel || sel.isCollapsed) hideButton();
+                    }, 50);
+                }
+            });
+
+            // Update position while selection changes, on scroll and resize
+            const debouncedUpdate = debounce(() => {
+                const sel = document.getSelection();
+                if (sel && !sel.isCollapsed && btn.style.display !== 'none') {
+                    updateButtonPositionForSelection(sel);
+                }
+            }, 25);
+            document.addEventListener('selectionchange', debouncedUpdate);
+            window.addEventListener('scroll', debouncedUpdate, true);
+            window.addEventListener('resize', debouncedUpdate);
+
+            // Observe style/class changes on html/body to catch CSS zoom changes (document.body.style.zoom)
+            // or other attribute changes that can affect computed positions (e.g. transform changes).
+            try {
+                const observer = new MutationObserver(debounce(mutations => {
+                    const sel = document.getSelection();
+                    if (sel && !sel.isCollapsed && btn.style.display !== 'none') {
+                        updateButtonPositionForSelection(sel);
+                    }
+                }, 30));
+
+                // observe changes to style and class on <html> and <body>
+                if (document.documentElement) {
+                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+                }
+                if (document.body) {
+                    observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+                }
+            } catch (e) {
+                // If MutationObserver unavailable or fails, it's non-fatal
+                console.warn('MutationObserver not available for quick-quote repositioning', e);
+            }
+
+            // Hide initially
+            hideButton();
+
+        })();
+    },
+
+    // end of Bitcointalk object
 };
 
 // الاستماع للرسائل من popup.js
@@ -493,6 +893,15 @@ chrome.storage.local.get('bitcointalk', function (storage) {
     Bitcointalk.highlightMyNameInMerit();
     Bitcointalk.enhancedReportToModeratorUI();
     Bitcointalk.toggleMerit();
+
+    // استدعاء Quick Quote init
+    try {
+        if (typeof Bitcointalk.initQuickQuote === 'function') {
+            Bitcointalk.initQuickQuote();
+        }
+    } catch (e) {
+        console.error('initQuickQuote error', e);
+    }
 
     if (typeof Object.keys(storage) !== 'undefined' && Object.keys(storage).length > 0) {
         Object.keys(storage.bitcointalk).map(function (key) {

@@ -1,0 +1,444 @@
+/* ============================================================================
+   نظام التصميم المحسن لثيم البيتكوين
+   Enhanced Bitcoin Theme Design System
+   
+   تحسينات مطبقة:
+   - اتساق في الألوان والتدرجات
+   - تحسين القراءة والوضوح
+   - خلفية محسنة غير مشتتة
+   - انتقالات ناعمة
+   - نظام خطوط محسن
+============================================================================ */
+
+/* ============ المتغيرات الأساسية - Core Variables ============ */
+:root {
+  /* ألوان البيتكوين الأساسية */
+  --bitcoin-dark: #0a0a0a;
+  --bitcoin-darker: #050505;
+  --bitcoin-surface: #1a1a1a;
+  --bitcoin-surface-elevated: #2a2a2a;
+  --bitcoin-surface-hover: #3a3a3a;
+  
+  /* تدرجات الذهبي */
+  --bitcoin-gold: #FFD700;
+  --bitcoin-gold-bright: #FFF8DC;
+  --bitcoin-gold-muted: #E6C200;
+  --bitcoin-gold-amber: #FFC107;
+  --bitcoin-gold-dark: #B8860B;
+  
+  /* ألوان إضافية */
+  --bitcoin-blue: #B1CBF7;
+  --bitcoin-blue-hover: #FFD700;
+  --bitcoin-green: #4CAF50;
+  --bitcoin-red: #F44336;
+  
+  /* الظلال والتأثيرات */
+  --bitcoin-shadow: 0 4px 12px -2px rgba(255, 215, 0, 0.15);
+  --bitcoin-glow: 0 0 20px rgba(255, 215, 0, 0.3);
+  --bitcoin-text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  
+  /* التدرجات */
+  --bitcoin-gradient: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  --bitcoin-gradient-gold: linear-gradient(135deg, #FFD700, #FFC107);
+  --bitcoin-gradient-hover: linear-gradient(135deg, #2a2a2a, #3a3a3a);
+  
+  /* الخطوط */
+  --font-family: 'Inter', 'Segoe UI', 'Roboto', 'Noto Sans Arabic', 'Helvetica Neue', Arial, sans-serif;
+  --letter-spacing-normal: 0.025em;
+  --letter-spacing-wide: 0.05em;
+  
+  /* الانحناءات */
+  --border-radius: 6px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+}
+
+/* ============ الخلفية العامة المحسنة - Enhanced Background ============ */
+body {
+  background-color: var(--bitcoin-dark) !important;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 0, 0.03) 0%, transparent 70%),
+    url('https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg');
+  background-repeat: no-repeat, no-repeat;
+  background-position: center, center;
+  background-attachment: fixed, fixed;
+  background-size: 200% 200%, 35%;
+  background-blend-mode: normal, overlay;
+  
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* تحسين الانتقالات */
+  transition: all 0.3s ease;
+}
+
+/* طبقة إضافية للتحكم في الشفافية */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 10, 0.7);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ============ الألوان العامة المحسنة - Enhanced General Colors ============ */
+* {
+  color: var(--bitcoin-gold-bright) !important;
+  border-color: #444 !important;
+  text-shadow: var(--bitcoin-text-shadow) !important;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease !important;
+}
+
+/* ============ العناوين المحسنة - Enhanced Headings ============ */
+h1, h2, h3, h4, h5, h6,
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+  color: var(--bitcoin-gold-bright) !important;
+  background: var(--bitcoin-gradient) !important;
+  padding: 12px 16px !important;
+  border-radius: var(--border-radius) !important;
+  border-left: 4px solid var(--bitcoin-gold) !important;
+  font-weight: 700 !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  margin-bottom: 16px !important;
+  box-shadow: var(--bitcoin-shadow) !important;
+  position: relative;
+}
+
+/* تأثير الهوفر للعناوين */
+h1:hover, h2:hover, h3:hover, h4:hover, h5:hover, h6:hover {
+  background: var(--bitcoin-gradient-hover) !important;
+  border-left-color: var(--bitcoin-gold-amber) !important;
+  transform: translateX(4px);
+}
+
+/* ============ الروابط المحسنة - Enhanced Links ============ */
+a:link, a:visited {
+  color: var(--bitcoin-blue) !important;
+  text-decoration: none !important;
+  border-bottom: 1px solid transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+a:hover, a:active {
+  color: var(--bitcoin-gold) !important;
+  text-decoration: none !important;
+  border-bottom-color: var(--bitcoin-gold) !important;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.5) !important;
+}
+
+/* روابط خاصة */
+a.important-link {
+  color: var(--bitcoin-gold-amber) !important;
+  font-weight: 600 !important;
+}
+
+a.important-link:hover {
+  color: var(--bitcoin-gold-bright) !important;
+  text-shadow: var(--bitcoin-glow) !important;
+}
+
+/* ============ المحتوى والرسائل - Content & Posts ============ */
+.post, .windowbg, .windowbg2, .content-box {
+  margin-bottom: 12px !important;
+  padding: 16px !important;
+  background: var(--bitcoin-gradient) !important;
+  border: 1px solid #333 !important;
+  border-radius: var(--border-radius) !important;
+  box-shadow: var(--bitcoin-shadow) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* تأثير الهوفر للمحتوى */
+.post:hover, .windowbg:hover, .windowbg2:hover, .content-box:hover {
+  border-color: var(--bitcoin-gold) !important;
+  box-shadow: var(--bitcoin-glow) !important;
+  transform: translateY(-2px);
+}
+
+/* ============ نص الرسائل المحسن - Enhanced Post Text ============ */
+.post .post_wrapper .postarea .inner,
+.content-text, .message-content {
+  color: var(--bitcoin-gold-black) !important;
+  line-height: 1.7 !important;
+  font-size: 15px !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+}
+
+/* ============ أسماء المستخدمين - Usernames ============ */
+.poster h4 a, .poster h4, .username {
+  color: var(--bitcoin-gold-amber) !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+}
+
+.poster h4 a:hover, .username:hover {
+  color: var(--bitcoin-gold-bright) !important;
+  text-shadow: var(--bitcoin-glow) !important;
+}
+
+/* ============ التاريخ والتفاصيل - Dates & Details ============ */
+.smalltext, .middletext, .postarea .smalltext, .metadata {
+  color: var(--bitcoin-gold-muted) !important;
+  font-size: 13px !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  opacity: 0.9;
+}
+
+/* ============ الاقتباسات المحسنة - Enhanced Quotes ============ */
+.quoteheader, .quote-header {
+  color: var(--bitcoin-gold-bright) !important;
+  background: var(--bitcoin-gradient) !important;
+  padding: 8px 12px !important;
+  border-top-left-radius: var(--border-radius) !important;
+  border-top-right-radius: var(--border-radius) !important;
+  border: 1px solid var(--bitcoin-gold) !important;
+  border-bottom: none !important;
+  font-weight: 600 !important;
+}
+
+.quote, .quote-content {
+  color: var(--bitcoin-gold-bright) !important;
+  background-color: var(--bitcoin-surface) !important;
+  padding: 12px !important;
+  border: 1px solid var(--bitcoin-gold) !important;
+  border-top: none !important;
+  border-bottom-left-radius: var(--border-radius) !important;
+  border-bottom-right-radius: var(--border-radius) !important;
+  position: relative;
+  line-height: 1.6 !important;
+}
+
+/* خط جانبي للاقتباس */
+.quote::before, .quote-content::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--bitcoin-gradient-gold);
+}
+
+/* ============ الأزرار المحسنة - Enhanced Buttons ============ */
+.button, .button_submit, input[type="submit"], input[type="button"],
+.btn, .btn-primary, .btn-secondary {
+  background: var(--bitcoin-gradient) !important;
+  color: var(--bitcoin-gold-bright) !important;
+  border: 1px solid var(--bitcoin-gold) !important;
+  border-radius: var(--border-radius) !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: var(--bitcoin-shadow) !important;
+}
+
+/* تأثير الهوفر للأزرار */
+.button:hover, .button_submit:hover, input[type="submit"]:hover, input[type="button"]:hover,
+.btn:hover, .btn-primary:hover, .btn-secondary:hover {
+  color: var(--bitcoin-dark) !important;
+  background: var(--bitcoin-gradient-gold) !important;
+  border-color: var(--bitcoin-gold-bright) !important;
+  box-shadow: var(--bitcoin-glow) !important;
+  transform: translateY(-2px);
+}
+
+/* أزرار خاصة */
+.btn-gold {
+  background: var(--bitcoin-gradient-gold) !important;
+  color: var(--bitcoin-dark) !important;
+}
+
+.btn-outline {
+  background: transparent !important;
+  color: var(--bitcoin-gold) !important;
+  border: 2px solid var(--bitcoin-gold) !important;
+}
+
+.btn-outline:hover {
+  background: var(--bitcoin-gold) !important;
+  color: var(--bitcoin-dark) !important;
+}
+
+/* ============ الجداول - Tables ============ */
+table {
+  background: var(--bitcoin-surface) !important;
+  border-collapse: collapse !important;
+  border-radius: var(--border-radius) !important;
+  overflow: hidden !important;
+  box-shadow: var(--bitcoin-shadow) !important;
+}
+
+th, td {
+  padding: 12px !important;
+  border: 1px solid #333 !important;
+  text-align: right !important;
+}
+
+th {
+  background: var(--bitcoin-gradient) !important;
+  color: var(--bitcoin-gold-bright) !important;
+  font-weight: 700 !important;
+}
+
+tr:nth-child(even) {
+  background: var(--bitcoin-surface-elevated) !important;
+}
+
+tr:hover {
+  background: var(--bitcoin-surface-hover) !important;
+}
+
+/* ============ النماذج - Forms ============ */
+input[type="text"], input[type="email"], input[type="password"],
+textarea, select {
+  background: var(--bitcoin-surface) !important;
+  color: var(--bitcoin-gold-bright) !important;
+  border: 1px solid #444 !important;
+  border-radius: var(--border-radius) !important;
+  padding: 8px 12px !important;
+  font-family: var(--font-family) !important;
+  transition: all 0.2s ease !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--bitcoin-gold) !important;
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2) !important;
+  outline: none !important;
+}
+
+/* ============ شريط التمرير المخصص - Custom Scrollbar ============ */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bitcoin-surface);
+  border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bitcoin-gradient-gold);
+  border-radius: var(--border-radius);
+  border: 2px solid var(--bitcoin-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bitcoin-gold-bright);
+}
+
+/* ============ التحديد - Selection ============ */
+::selection {
+  background: rgba(255, 215, 0, 0.3) !important;
+  color: var(--bitcoin-gold-bright) !important;
+}
+
+::-moz-selection {
+  background: rgba(255, 215, 0, 0.3) !important;
+  color: var(--bitcoin-gold-bright) !important;
+}
+
+/* ============ الرسائل والتنبيهات - Messages & Alerts ============ */
+.alert, .notification, .message {
+  padding: 12px 16px !important;
+  border-radius: var(--border-radius) !important;
+  margin-bottom: 16px !important;
+  border-left: 4px solid var(--bitcoin-gold) !important;
+}
+
+.alert-success {
+  background: rgba(76, 175, 80, 0.1) !important;
+  border-left-color: var(--bitcoin-green) !important;
+  color: var(--bitcoin-green) !important;
+}
+
+.alert-error {
+  background: rgba(244, 67, 54, 0.1) !important;
+  border-left-color: var(--bitcoin-red) !important;
+  color: var(--bitcoin-red) !important;
+}
+
+.alert-warning {
+  background: rgba(255, 193, 7, 0.1) !important;
+  border-left-color: var(--bitcoin-gold-amber) !important;
+  color: var(--bitcoin-gold-amber) !important;
+}
+
+/* ============ الشارات والعلامات - Badges & Tags ============ */
+.badge, .tag, .label {
+  background: var(--bitcoin-gradient-gold) !important;
+  color: var(--bitcoin-dark) !important;
+  padding: 4px 8px !important;
+  border-radius: 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  display: inline-block !important;
+  margin: 2px !important;
+}
+
+.badge-outline {
+  background: transparent !important;
+  border: 1px solid var(--bitcoin-gold) !important;
+  color: var(--bitcoin-gold) !important;
+}
+
+/* ============ التحسينات النهائية - Final Optimizations ============ */
+
+/* تحسين الخط العام */
+body, .post, input, textarea, select, button {
+  font-family: var(--font-family) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+}
+
+/* تحسين الانتقالات العامة */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, 
+              box-shadow 0.2s ease, transform 0.1s ease !important;
+}
+
+/* تحسين للشاشات الصغيرة */
+@media (max-width: 768px) {
+  body {
+    background-size: 150% 150%, 50% !important;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    padding: 8px 12px !important;
+    font-size: 0.9em !important;
+  }
+  
+  .post, .windowbg, .windowbg2, .content-box {
+    padding: 12px !important;
+    margin-bottom: 8px !important;
+  }
+}
+
+/* تحسين للطباعة */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  * {
+    color: black !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ============ نهاية الملف - End of File ============ */

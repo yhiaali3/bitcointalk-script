@@ -1,649 +1,130 @@
-/* Dark theme. Made by Cyrus @ Bitcointalk.org */
-
-/* Normal, standard links. */
-a:link
-{
-    color: #92A9BC;
-    text-decoration: none;
-}
-a:visited
-{
-    color: #92A9BC;
-    text-decoration: none;
-}
-a:hover
-{
-    text-decoration: underline;
+/* ============ الخلفية العامة مع شعار البيتكوين (شفافية مخفضة) ============ */
+body {
+    background-color: #121212 !important;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/46/Bitcoin.svg');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-attachment: fixed;
+    background-size: 45%;
+    background-blend-mode: overlay;
+    opacity: 0.70; /* تقليل الشفافية لزيادة وضوح الشعار */
 }
 
-/* Style for ignored topics in the message view */
-.ignored_topic td a:link
-{
-    color: #ACABAD;
-    text-decoration: none;
-    font-style:italic
-}
-.ignored_topic td a:visited
-{
-    color: #ACABAD;
-    text-decoration: none;
-    font-style:italic
-}
-.ignored_topic td
-{
-    color: #ACABAD;
-    font-size:smaller;
-    padding-top:0;
-    padding-bottom:0
-}
-.ignored_topic .leftimg img
-{
-    display:none
-}
-
-/* Navigation links - for the link tree. */
-.nav, .nav:link, .nav:visited
-{
-    color: #C5C5C5;
-    text-decoration: none;
-}
-a.nav:hover
-{
-    color: #C5C5C5;
-    text-decoration: underline;
-}
-
-/* Tables should show empty cells. */
-table
-{
-    empty-cells: show;
-}
-
-/* By default (td, body..) use verdana in black. */
-body, td, th , tr
-{
-    color: #C5C5C5;
-    font-size: 13px;
-    font-family: verdana, sans-serif;
-}
-
-/* The main body of the entire forum. */
-body
-{
-    background-color: #111111;
-    margin: 0px;
-    padding: 12px 30px 4px 30px;
-    font: 13px verdana, helvetica, sans-serif;
-}
-
-/* Input boxes - just a bit smaller than normal so they align well. */
-input, textarea, button
-{
-    color: #000000;
-    font-family: verdana, sans-serif;
-}
-input, button
-{
-    font-size: 90%;
-}
-
-textarea
-{
-    font-size: 100%;
-    color: #000000;
-    font-family: verdana, sans-serif;
-}
-
-/* All input elements that are checkboxes or radio buttons. */
-input.check
-{
-}
-
-/* Selects are a bit smaller, because it makes them look even better 8). */
-select
-{
-    font-size: 90%;
-    font-weight: normal;
-    color: #000000;
-    font-family: verdana, sans-serif;
-}
-
-/* Standard horizontal rule.. ([hr], etc.) */
-hr, .hrcolor
-{
-    height: 1px;
-    border: 0;
-    color: #656565;
-    background-color: #656565;
-}
-
-/* No image should have a border when linked */
-a img
-{
-    border: 0;
-}
-
-/* A quote, perhaps from another post. */
-.quote
-{
-    color: #C5C5C5;
-    background-color: #494949;
-    border: 1px solid #BCBCBC;
-    padding: 5px;
-    margin: 1px 3px 6px 6px;
-    font-size: 11px;
-    line-height: 1.4em;
-}
-
-
-/* A code block - maybe even PHP ;). */
-.code
-{
-    color: #000000;
-    background-color: #fff;
-    font-family: "courier new", "times new roman", monospace;
-    font-size: 12px;
-    line-height: 1.3em;
-    /* Put a nice border around it. */
-    border: 1px solid #000000;
-    padding: 5px;
-    margin: 1px 3px 4px 6px;
-    width: 93%;
-    /* Don't wrap its contents, and show scrollbars. */
-    white-space: nowrap;
-    overflow: auto;
-    /* Stop after about 24 lines, and just show a scrollbar. */
-    max-height: 24em;
-}
-
-/* The "Quote:" and "Code:" header parts... */
-.quoteheader, .codeheader
-{
-    color: #92A9BC;
-    text-decoration: none;
-    font-style: normal;
-    font-weight: bold;
-    font-size: 10px;
-    line-height: 1.2em;
-    margin-left: 6px;
-}
-
-/* Generally, those [?] icons.  This makes your cursor a help icon. */
-.help
-{
-    cursor: help;
-}
-
-/* /me uses this a lot. (emote, try typing /me in a post.) */
-.meaction
-{
-    color: red;
-}
-
-/* The main post box - this makes it as wide as possible. */
-.editor
-{
-    width: 96%;
-    height: 350px;
-}
-
-/* Highlighted text - such as search results. */
-.highlight
-{
-    background-color: yellow;
-    font-weight: bold;
-    color: black;
-}
-
-/* Alternating backgrounds for posts, and several other sections of the forum. */
-.windowbg, #preview_body
-{
-    color: #C5C5C5;
-    background-color: #2A2A2A;
-}
-.windowbg2
-{
-    color: #C5C5C5;
-    background-color: #353535;
-}
-.windowbg3
-{
-    color: #C5C5C5;
-    background-color: #3F3F3F;
-}
-/* the today container in calendar */
-.calendar_today
-{
-    background-color: #FFFFFF;
-}
-
-/* These are used primarily for titles, but also for headers (the row that says what everything in the table is.) */
-.titlebg, tr.titlebg th, tr.titlebg td, .titlebg2, tr.titlebg2 th, tr.titlebg2 td
-{
-    color: #C5C5C5;
-    font-style: normal;
-    background: #4A4A4A repeat-x;
-    border-bottom: solid 1px #ffffff;
-    border-top: solid 1px #FFFFFF;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-.titlebg, .titlebg a:link, .titlebg a:visited
-{
-    font-weight: bold;
-    color: #C5C5C5;
-    font-style: normal;
-}
-
-.titlebg a:hover
-{
-    color: #C5C5C5;
-}
-/* same as titlebg, but used where bold text is not needed */
-.titlebg2 a:link, .titlebg2 a:visited
-{
-    color: black;
-    font-style: normal;
-    text-decoration: underline;
-}
-
-.titlebg2 a:hover
-{
-    text-decoration: underline;
-}
-
-/* This is used for categories, page indexes, and several other areas in the forum.
-.catbg and .catbg2 is for boardindex, while .catbg3 is for messageindex and display headers*/
-.catbg , tr.catbg td , .catbg3 , tr.catbg3 td
-{
-    background: #575757 repeat-x;
-    color: #ffffff;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-.catbg2 , tr.catbg2 td
-{
-    background: #717171 repeat-x;
-    color: #ffffff;
-    padding-left: 10px;
-    padding-right: 10px;
-}
-.catbg, .catbg2, .catbg3
-{
-    border-bottom: solid 1px #ffffff;
-}
-.catbg, .catbg2
-{
-    font-weight: bold;
-}
-.catbg3, tr.catbg3 td, .catbg3 a:link, .catbg3 a:visited
-{
-    font-size: 95%;
-    color: white;
-    text-decoration: none;
-}
-.catbg a:link, .catbg a:visited , .catbg2 a:link, .catbg2 a:visited
-{
-    color: white;
-    text-decoration: none;
-}
-.catbg a:hover, .catbg2 a:hover, .catbg3 a:hover
-{
-    color: #e0e0ff;
-}
-/* This is used for tables that have a grid/border background color (such as the topic listing.) */
-.bordercolor
-{
-    background-color: #ADADAD;
-    padding: 0px;
-}
-
-/* This is used on tables that should just have a border around them. */
-.tborder
-{
-    padding: 1px;
-    background-color: #FFFFFF;
-}
-
-/* Default font sizes: small (8pt), normal (10pt), and large (14pt). */
-.smalltext
-{
-    font-size: x-small;
-    font-family: verdana, sans-serif;
-}
-.middletext
-{
-    font-size: 90%;
-}
-.normaltext
-{
-    font-size: small;
-}
-.largetext
-{
-    font-size: large;
-}
-
-
-/* Posts and personal messages displayed throughout the forum. */
-.post, .personalmessage
-{
-    width: 100%;
-    overflow: auto;
-    line-height: 1.3em;
-}
-
-/* All the signatures used in the forum.  If your forum users use Mozilla, Opera, or Safari, you might add max-height here ;). */
-.signature
-{
-    max-height: 4em;
-    width: 100%;
-    overflow: hidden;
-    padding-bottom: 3px;
-    line-height: 1.3em;
-}
-
-/* Sometimes there will be an error when you post */
-.error
-{
-    color: red;
-}
-
-/* The AJAX notifier */
-#ajax_in_progress
-{
-    background: #32CD32;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    font-size: 18pt;
-    padding: 3px;
-    width: 100%;
+body::before {
+    content: "";
     position: fixed;
     top: 0;
     left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(18, 18, 18, 0.8);
+    z-index: -1;
 }
 
-
-
-
-/* Standard SMF tabs */
-/* definitions for the main tab, active means the tab reflects which page is displayed */
-.maintab_first, .maintab_back, .maintab_last, .maintab_active_first, .maintab_active_back, .maintab_active_last
-{
-    color: white;
-    text-transform: uppercase;
-    vertical-align: top;
-}
-.maintab_back, .maintab_active_back
-{
-    color: white;
-    text-decoration: none;
-    font-size:  9px;
-    vertical-align: top;
-    padding: 2px 6px 6px 6px;
-    font-family: tahoma, sans-serif;
+/* ============ الألوان العامة — ذهبي فاخر ============ */
+* {
+    color: #FFD700 !important;
+    border-color: #444 !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
 }
 
-.maintab_first
-{
-}
-.maintab_back
-{
-    border-bottom: 1px solid white;
-    border-left: 1px solid white;
-    border-right: 1px solid white;
-}
-.maintab_last
-{
-}
-.maintab_active_first
-{
-    background: white;
-}
-.maintab_active_back
-{
-    background: #4C4C4C;
-    border-bottom: 3px solid white;
-}
-.maintab_active_last
-{
-    background: white;
+/* ============ العناوين ============ */
+h1, h2, h3, h4, h5, h6,
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+    color: #FFD700 !important;
+    background: linear-gradient(90deg, #1a1a1a, #2a2a2a) !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    border-left: 4px solid #FFD700 !important;
+    font-weight: bold !important;
 }
 
-/* how links behave in main tab. */
-.maintab_back a:link , .maintab_back a:visited, .maintab_active_back a:link , .maintab_active_back a:visited
-{
-    color: white;
-    text-decoration: none;
+/* ============ الروابط ============ */
+a:link, a:visited {
+    color: #B1CBF7 !important;
+    text-decoration: none !important;
+}
+a:hover, a:active {
+    color: #FFD700 !important;
+    text-decoration: underline !important;
 }
 
-.maintab_back a:hover, .maintab_active_back a:hover
-{
-    color: #C5C5C5;
-    text-decoration: none;
+/* ============ تقليل الفواصل بين الرسائل ============ */
+.post, .windowbg, .windowbg2 {
+    margin-bottom: 6px !important;
+    padding: 8px !important;
+    background-color: #1a1a1a !important;
+    border: 1px solid #333 !important;
+    border-radius: 6px !important;
 }
 
+/* ============ نص الرسائل ============ */
+.post .post_wrapper .postarea .inner {
+    color: blue !important;
+    line-height: 1.6 !important;
+    font-size: 15px !important;
+    font-family: 'Segoe UI', 'Roboto', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif !important;
 
-
-/* Custom tabs for message area */
-/* definitions for the main and mirror tabs, active means the tab reflects which page is displayed */
-div#bodyarea .maintab_first, div#bodyarea .maintab_back, div#bodyarea .maintab_last, div#bodyarea .maintab_active_first, div#bodyarea .maintab_active_back, div#bodyarea .maintab_active_last,
-div#bodyarea .mirrortab_first, div#bodyarea .mirrortab_back, div#bodyarea .mirrortab_last, div#bodyarea .mirrortab_active_first, div#bodyarea .mirrortab_active_back, div#bodyarea .mirrortab_active_last
-{
-    color: #a1a1a1;
-    text-transform: lowercase;
-    vertical-align: top;
-}
-div#bodyarea .maintab_back, div#bodyarea .maintab_active_back,
-div#bodyarea .mirrortab_back, div#bodyarea .mirrortab_active_back
-{
-    color: #a1a1a1;
-    text-decoration: none;
-    font-size:  11px;
-    vertical-align: top;
-    padding: 6px;
-    padding-top: 4px;
-    font-family: verdana, sans-serif;
-    font-weight: bold;
 }
 
-div#bodyarea .maintab_first,
-div#bodyarea .mirrortab_first
-{
-    display: none;
-}
-div#bodyarea .maintab_back,
-div#bodyarea .mirrortab_back
-{
-    background: none;
-}
-div#bodyarea .maintab_last,
-div#bodyarea .mirrortab_last
-{
-    display: none;
-}
-div#bodyarea .maintab_active_first,
-div#bodyarea .mirrortab_active_first
-{
-    display: none;
-}
-div#bodyarea .maintab_active_back,
-div#bodyarea .mirrortab_active_back
-{
-    background: #575757 repeat-x;
-}
-div#bodyarea .maintab_active_last,
-div#bodyarea .mirrortab_active_last
-{
-    display: none;
+/* ============ اسم المستخدم ============ */
+.poster h4 a, .poster h4 {
+    color: #FFC107 !important;
+    font-weight: bold !important;
+    font-size: 16px !important;
 }
 
-/* how links behave in main tab. */
-div#bodyarea .maintab_back a:link, div#bodyarea .maintab_back a:visited,
-div#bodyarea .mirrortab_back a:link, div#bodyarea .mirrortab_back a:visited
-{
-    color: #92A9BC;
-    text-decoration: none;
-}
-div#bodyarea .maintab_active_back a:link, div#bodyarea .maintab_active_back a:visited,
-div#bodyarea .mirrortab_active_back a:link, div#bodyarea .mirrortab_active_back a:visited
-{
-    color: #ffffff;
-    text-decoration: none;
+/* ============ التاريخ والتفاصيل ============ */
+.smalltext, .middletext, .postarea .smalltext {
+    color: #E6C200 !important;
+    font-size: 13px !important;
+    font-family: 'Segoe UI', 'Roboto', 'Noto Sans', Arial, sans-serif !important;
 }
 
-div#bodyarea .maintab_back a:hover, div#bodyarea .maintab_active_back a:hover,
-div#bodyarea .mirrortab_back a:hover, div#bodyarea .mirrortab_active_back a:hover
-{
-    text-decoration: underline;
+/* ============ الـ Quote ============ */
+.quoteheader {
+    color: #FFD700 !important;
+    background-color: #2a2a2a !important;
+    padding: 6px 10px !important;
+    border-top-left-radius: 6px !important;
+    border-top-right-radius: 6px !important;
+    border: 1px solid #444 !important;
+    border-bottom: none !important;
 }
 
-
-
-
-
-
-.nav
-{
-    font-size: 13px;
-    font-weight: normal;
+.quote {
+    color: #FFD700 !important;
+    background-color: #1e1e1e !important;
+    padding: 10px !important;
+    border: 1px solid #444 !important;
+    border-top: none !important;
+    border-bottom-left-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
 }
 
-div.nav b:last-child a
-{
-    font-weight: bold;
-    text-decoration: none;
-    cursor: default;
+/* ============ الأزرار ============ */
+.button, .button_submit, input[type="submit"], input[type="button"] {
+    background: linear-gradient(to bottom, #2a2a2a, #1a1a1a) !important;
+    color: #CCC !important;
+    border: 1px solid #555 !important;
+    border-radius: 5px !important;
+    padding: 6px 12px !important;
+    font-weight: bold !important;
+    font-family: 'Segoe UI', 'Roboto', 'Noto Sans', Arial, sans-serif !important;
 }
 
-.post
-{
-    font-size: 13px;
+.button:hover, .button_submit:hover, input[type="submit"]:hover, input[type="button"]:hover {
+    color: #FFD700 !important;
+    background: linear-gradient(to bottom, #3a3a3a, #2a2a2a) !important;
+    border-color: #FFD700 !important;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.5) !important;
 }
 
-.smalltext
-{
-    font-size: 11px;
+/* ============ الخط العام ============ */
+.input, textarea {
+    font-family: 'Segoe UI', 'Roboto', 'Noto Sans', 'Helvetica Neue', Arial, sans-serif !important;
+    letter-spacing: 0.3px !important;
+    font-weight: bold !important;
+    background-color: #2a2a2a !important;
+    color: #e0e0e0 !important;
 }
-
-/* valign the first column icons on main page */
-div div.tborder table.bordercolor td.windowbg
-{
-    vertical-align: middle;
-}
-
-/* valign the reply, modify etc icons with their button text */
-table.bordercolor td.windowbg td a img,
-table.bordercolor td.windowbg2 td a img
-{
-    vertical-align: middle;
-    margin-left: 4px;
-}
-
-/* hide the ip logged icon */
-table.bordercolor td.windowbg td.smalltext td.smalltext img,
-table.bordercolor td.windowbg2 td.smalltext td.smalltext img
-{
-    display: none;
-}
-
-/* prevent gap between post icon and subject */
-div#bodyarea table.bordercolor td td td.td_headerandpost td:first-child
-{
-    width: 26px;
-}
-
-/* offline indicator: hide it, only show when online */
-div#bodyarea table.bordercolor td td td.poster_info div.smalltext img[src*="useroff.gif"]
-{
-    vertical-align: middle;
-    display: none;
-}
-div#bodyarea table.bordercolor td td td.poster_info div.smalltext img[src*="useroff.gif"] + span.smalltext,
-div#bodyarea div.smalltext > a[title*="(Offline)"] + span.smalltext
-{
-    vertical-align: middle;
-    display: none;
-}
-
-/* online indicator: get icon aligned with text and bold it */
-div#bodyarea table.bordercolor td td td.poster_info div.smalltext img[src*="useron.gif"]
-{
-    vertical-align: middle;
-    margin-top: 2px;
-    margin-bottom: 2px;
-}
-div#bodyarea table.bordercolor td td td.poster_info div.smalltext img[src*="useron.gif"] + span.smalltext,
-div#bodyarea div.smalltext > a[title*="(Online)"] + span.smalltext
-{
-    vertical-align: middle;
-    font-weight: bold;
-    line-height: 28px;
-}
-
-/* widen the details column on the forums directory */
-div.tborder table.bordercolor td.windowbg[width="6%"] + td + td + td.windowbg2[width="22%"]
-{
-    min-width: 230px;
-}
-
-/* widen the details column on the topics list */
-div.tborder table.bordercolor td.windowbg[width="4%"] + td.windowbg2[width="22%"]
-{
-    min-width: 230px;
-}
-
-/* hide the "logged" text/image -- CSS by ryepdx */
-td.smalltext[id^="modified_"] + td.smalltext[align="right"][valign="bottom"]
-{
-    display: block !important;
-}
-td.smalltext[id^="modified_"] + td.smalltext[align="right"][valign="bottom"] img,
-td.smalltext[id^="modified_"] + td.smalltext[align="right"][valign="bottom"] .help
-{
-    display: none !important;
-}
-
-/* get rid of some of the spacing left over from the empty table */
-table[cellpadding="3"] table[cellpadding="5"] td.smalltext[valign="bottom"][width="85%"]
-{
-    padding: 0px;
-}
-
-/* check the checkbox to hide email address on the registration form */
-input#hideEmail
-{
-    checked: checked;
-}
-
-.hiddenlink:link {color:lightgray;}
-.hiddenlink:visited {color:lightgray;}
-.hiddenlink:hover {color:lightgray;}
-.hiddenlink:active {color:lightgray;}
-
-@font-face {
-    font-family: 'ChopinScript';
-    src: url('/Themes/ChopinScript.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
-    font-family: 'BTC';
-    src: url('/Themes/BTC.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-.BTC {font-family: "BTC";}
-
-.edited
-{
-    border-bottom: 1px dotted black;
-    cursor: help;
-}
-
-img.userimg {max-width: 100%}
-.trustscore{white-space:nowrap}
-.nohover:hover{text-decoration:none}
