@@ -1,182 +1,148 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Bitcointalk Script</title>
-    <meta charset="utf-8">
-    <link href="icons/icon16.png" rel="shortcut icon">
-    <meta name="viewport" content="width=device-width, initial-scale=1 user-scalable=no">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Slider styles - green track */
-        .zoom-slider {
-            width: 100%;
-            margin: 10px 0 5px 0;
-            -webkit-appearance: none;
-            appearance: none;
-            height: 10px;
-            border-radius: 5px;
-            background: linear-gradient(90deg, #28a745 0%, #28a745 50%, #ddd 50%, #ddd 100%);
-            outline: none;
-        }
-        .zoom-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid #28a745;
-            box-shadow: 0 0 2px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        .zoom-slider::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #fff;
-            border: 2px solid #28a745;
-            box-shadow: 0 0 2px rgba(0,0,0,0.3);
-            cursor: pointer;
-        }
-        .zoom-value {
-            font-weight: bold;
-            color: #28a745;
-            margin-left: 6px;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Bitcointalk Script — Controls</title>
+  <link rel="stylesheet" href="css/popup.css">
 </head>
 <body>
-    <div class="text-center logo">
-        <img src="icons/icon32.png" alt="Bitcointalk Extension"> Bitcointalk Script
-    </div>
-
-    <div id="not" class="hidden">
-        <div class="text-center">
-            <h1 class="red">This extension is only for Bitcointalk</h1>
-            <a class="" href="https://bitcointalk.org" target="_blank">
-                <h3>Open Bitcointalk</h3>
-            </a>
-        </div>
-    </div>
-    <div id="menu">
-        <div class="text-center">
-            <h1>Theme</h1>
-            <div class="btn-group w-100 theme">
-                <button class="w-50" data-key="theme" data-value="on">
-                    <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Default</span>
-                </button>
-                <button class="w-50" data-key="theme" data-value="1">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Dark 1</span>
-                </button>
-                <button class="w-50" data-key="theme" data-value="2">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Bitcoin</span>
-                </button>
-                <button class="w-50" data-key="theme" data-value="3">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Dark 3</span>
-                </button>
-                <button class="w-50" data-key="theme" data-value="4">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Green</span>
-                </button>
-                <button class="w-50" data-key="theme" data-value="5">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Light</span>
-                </button>
+    <div class="app">
+        <header class="app-header">
+            <img src="icons/icon32.png" alt="icon" width="36" height="36">
+            <div class="app-title">
+                <h1>Bitcointalk Script</h1>
+                <small>Themes · Zoom · Direction · Emoji</small>
             </div>
+        </header>
 
-            <div class="flex">
-                <div class="w-50">
-                    <div class="btn-group w-100 signature">
-                        <h1>Signature block</h1>
-                        <button data-key="signature" data-value="on">
-                            <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                            <span>ON</span>
-                        </button>
-                        <button data-key="signature" data-value="off">
-                            <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                            <span>OFF</span>
-                        </button>
+        <main class="panels">
+
+            <!-- Emoji panel (collapsible, compact) -->
+            <section class="panel" id="panel-emoji">
+                <div class="panel-head">
+                    <h2>Emoji</h2>
+                    <div class="panel-controls">
+                        <span id="emojiStatus" class="status small"></span>
+                        <label class="switch compact">
+                            <input type="checkbox" id="enableEmoji">
+                            <span class="slider"></span>
+                        </label>
+                        <button id="toggleEmojiPanel" class="btn small">⇵</button>
                     </div>
                 </div>
+                <div class="panel-body compact-body" id="emojiBody">
+                    <p class="muted">Small emoji picker — tick to enable toolbar;</p>
+                    <div id="emoji-grid" class="emoji-grid"></div>
+                </div>
+            </section>
 
-                <div class="w-50">
-                    <div class="btn-group w-100 avatar">
-                        <h1>Avatar block</h1>
-                        <button data-key="avatar" data-value="on">
-                            <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                            <span>ON</span>
-                        </button>
-                        <button data-key="avatar" data-value="off">
-                            <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                            <span>OFF</span>
-                        </button>
+            <!-- Emoticon replacer -->
+            <section class="panel" id="panel-replacer">
+                <div class="panel-head">
+                    <h2>Emoticon replacer</h2>
+                    <div class="panel-controls">
+                        <span id="replacerStatus" class="status small"></span>
+                        <label class="switch compact">
+                            <input type="checkbox" id="enableReplacer">
+                            <span class="slider"></span>
+                        </label>
                     </div>
                 </div>
-            </div>
-
-            <h1>Show Bitcoin/Ethereum Price</h1>
-            <div class="btn-group w-100 price">
-                <button class="w-50" data-key="price" data-value="on">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>ON</span>
-                </button>
-                <button class="w-50" data-key="price" data-value="off">
-                    <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>OFF</span>
-                </button>
-            </div>
-
-            <h1>Pins Post or Comment</h1>
-            <div class="btn-group w-100 pins">
-                <button class="w-50" data-key="pins" data-value="on">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>ON</span>
-                </button>
-                <button class="w-50" data-key="pins" data-value="off">
-                    <i class="circle circle-off">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>OFF</span>
-                </button>
-            </div>
-
-            <h1>Page Direction</h1>
-            <div class="btn-group w-100 direction">
-                <button class="w-50" data-key="direction" data-value="ltr">
-                    <i class="circle circle-on">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Left to Right (LTR)</span>
-                </button>
-                <button class="w-50" data-key="direction" data-value="rtl">
-                    <i class="circle">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                    <span>Right to Left (RTL)</span>
-                </button>
-            </div>
-
-            <h1>Font-size / <span id="zoom">100</span>%</h1>
-            <div>
-                <!-- Slider: min 50% to max 200% step 5 -->
-                <input id="zoomSlider" class="zoom-slider" type="range" min="50" max="200" step="5" value="100" data-key="zoom">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <small>50%</small>
-                    <span class="zoom-value" id="zoomValue">100%</span>
-                    <small>200%</small>
+                <div class="panel-body">
+                    <p class="muted">Convert shortcuts (e.g. <code>^‑^</code>, <code>0:)</code>) to emoji while typing.</p>
                 </div>
-            </div>
+            </section>
 
-        </div>
+            <!-- Theme / Appearance -->
+            <section class="panel" id="panel-theme">
+                <div class="panel-head"><h2 style="font-size:18px; font-weight:800;">Theme & Display</h2></div>
+                <div class="panel-body">
+                    <div class="row">
+                        <label style="font-size:18px; font-weight:800;">Theme</label>
+                        <div class="btn-row" id="themeButtons">
+                            <button class="btn small" data-key="theme" data-value="on">Default</button>
+                            <button class="btn small" data-key="theme" data-value="1">Dark 1</button>
+                            <button class="btn small" data-key="theme" data-value="2">Bitcoin</button>
+                            <button class="btn small" data-key="theme" data-value="3">Dark 3</button>
+                            <button class="btn small" data-key="theme" data-value="4">Green</button>
+                            <button class="btn small" data-key="theme" data-value="5">Light</button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <label style="font-size:18px; font-weight:800;">Signature</label>
+                        <div class="btn-row">
+                            <button class="btn small toggle-btn" data-key="signature" data-value="on">ON</button>
+                            <button class="btn small toggle-btn" data-key="signature" data-value="off">OFF</button>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <label style="font-size:18px; font-weight:800;">Avatar</label>
+                        <div class="btn-row">
+                            <button class="btn small toggle-btn" data-key="avatar" data-value="on">ON</button>
+                            <button class="btn small toggle-btn" data-key="avatar" data-value="off">OFF</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Price / Pins / Direction -->
+            <section class="panel" id="panel-others">
+                <div class="panel-head"><h2>Other</h2></div>
+                <div class="panel-body">
+                    <div class="row">
+                        <label style="font-size:16px; font-weight:700;">Show Price</label>
+                        <div class="btn-row">
+                            <button class="btn small toggle-btn" data-key="price" data-value="on">ON</button>
+                            <button class="btn small toggle-btn" data-key="price" data-value="off">OFF</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label style="font-size:14px; font-weight:800;">Pins</label>
+                        <div class="btn-row">
+                            <button class="btn small toggle-btn" data-key="pins" data-value="on">ON</button>
+                            <button class="btn small toggle-btn" data-key="pins" data-value="off">OFF</button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <label style="font-size:18px; font-weight:600;">Direction</label>
+                        <div class="btn-row">
+                            <button class="btn small toggle-btn" data-key="direction" data-value="ltr">LTR</button>
+                            <button class="btn small toggle-btn" data-key="direction" data-value="rtl">RTL</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Zoom -->
+            <section class="panel" id="panel-zoom">
+                <div class="panel-head"><h2>Font size</h2></div>
+                <div class="panel-body">
+                    <div class="zoom-row">
+                        <input id="zoomSlider" type="range" min="50" max="200" step="5" value="100" data-key="zoom">
+                        <div class="zoom-info"><span id="zoomValue">100%</span></div>
+                    </div>
+                    <div class="muted small">Use the slider to change page zoom (stored per extension).</div>
+                </div>
+            </section>
+            
+        </main>
+
+        <footer class="app-footer">
+            <hr>
+            <a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
+            <br>
+            Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> - Version 2.5
+            <br>
+            Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> - Version 3
+            <br>
+            <a href="https://bitcointalk.org/index.php?topic=5558295" target="_blank">The Edit post on Bitcointalk</a>
+        </footer>
     </div>
-    <hr>
-    <a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
-    <br>
-    Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> - Version 2.5
-    <br>
-    Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> - Version 3
     
-    <br>
-    <a href="https://bitcointalk.org/index.php?topic=5558295" target="_blank">The Edit post on Bitcointalk</a>
-
+    
     <script src="js/jquery-3.3.1.min.js"></script>
     <script src="js/popup.js"></script>
 </body>

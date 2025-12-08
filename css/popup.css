@@ -1,0 +1,282 @@
+/* css/popup.css - modern paneled popup with compact emoji panel */
+
+/* Root variables for colors, borders, and radius */
+:root {
+    --bg: #ffffff;
+    --muted: #6b7280;
+    --panel-bg: #eaeaea; /* Darker than #fafafa */
+    --accent: #2563eb;
+    --success: #10b981;
+    --danger: #ef4444;
+    --border: #d0d0d0; /* Slightly darker border */
+    --radius: 10px;
+}
+
+
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    margin: 0;
+    background: var(--bg);
+    color: #111111; /* Darker text for better readability */
+    width: 420px;
+    padding: 10px;
+    font-size: 12px; /* Larger base font size */
+    line-height: 1.6; /* More spacing between lines */
+}
+
+.app-header {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+    .app-header img {
+        border-radius: 6px;
+    }
+
+.app-title h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+}
+/* Bigger, bolder title */
+.app-title small {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.panel {
+    background: var(--panel-bg); /* Darker background */
+    border: 1px solid var(--border); /* Darker border */
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+
+.panel-body h2 {
+    font-size: 16px;
+    font-weight: 800;
+}
+/* Panel card */
+.panel {
+    background: var(--panel-bg);
+    border: 3px solid var(--border); /* Thicker border (was 1px) */
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+    .panel-head h2 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+    }
+/* Clearer section titles */
+.panel-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Compact switch */
+.switch.compact {
+    width: 40px;
+    height: 22px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 26px;
+}
+
+    .switch input {
+        display: none;
+    }
+
+    .switch .slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #ddd;
+        border-radius: 999px;
+        transition: all .18s ease;
+    }
+
+        .switch .slider:before {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 4px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: all .18s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+
+    .switch input:checked + .slider {
+        background: var(--accent);
+    }
+
+        .switch input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+/* Emoji grid - more compact */
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr); /* More columns = smaller tiles */
+    gap: 4px; /* Reduced spacing */
+    margin-top: 4px;
+}
+
+.emoji-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-size: 11px; /* Smaller text inside emoji tiles */
+}
+
+    .emoji-tile img {
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+        display: block; /* Smaller emoji icons */
+    }
+/* Only reduce text size inside emoji incubator */
+.emoji-grid .emoji-tile {
+    font-size: 9px; /* Smaller text only */
+    line-height: 1.2; /* Compact line spacing */
+}
+
+    /* Keep emoji icons unchanged */
+    .emoji-grid .emoji-tile img {
+        width: 16px; /* Keep original size */
+        height: 16px;
+    }
+    .emoji-tile.selected {
+        border-color: var(--accent);
+        background: rgba(37,99,235,0.06);
+    }
+
+/* Rows and buttons */
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.btn-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Theme buttons - larger and clearer */
+.btn {
+    border: 2px solid var(--accent); /* Stronger border */
+    background: var(--panel-bg);
+    padding: 10px 14px; /* Larger padding */
+    font-size: 15px; /* Bigger text */
+    font-weight: 600; /* Bold text */
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+    .btn:hover {
+        background: var(--accent);
+        color: white;
+    }
+
+    .btn.small {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+/* Toggle buttons show ON/OFF color */
+.toggle-btn.active-on {
+    background: var(--success);
+    color: white;
+    border-color: rgba(16,185,129,0.4);
+}
+
+.toggle-btn.active-off {
+    background: var(--danger);
+    color: white;
+    border-color: rgba(239,68,68,0.4);
+}
+
+/* Zoom row */
+.zoom-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+    .zoom-row input[type="range"] {
+        flex: 1;
+    }
+
+/* Small text */
+.muted {
+    color: var(--muted);
+    margin: 6px 0;
+}
+
+.small {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Footer */
+.app-footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 6px;
+}
+
+/* Utility */
+.hidden {
+    display: none !important;
+}
+
+.compact-body {
+    padding: 8px 12px;
+}
+/* Add border around theme, signature, avatar, price, pins, direction rows */
+#panel-theme .row,
+#panel-others .row {
+    border: 2px solid var(--border); /* Thicker border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 8px; /* Inner spacing */
+    margin-bottom: 10px; /* Space between rows */
+    background: var(--panel-bg); /* Keep same panel background */
+}

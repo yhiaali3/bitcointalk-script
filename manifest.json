@@ -1,9 +1,9 @@
 {
   "name": "Bitcointalk Script",
   "short_name": "Bitcointalk-Script",
-  "version": "3.5",
+  "version": "3.8",
   "manifest_version": 3,
-  "description": "Extension specific to Bitcointalk - Synthesis script, all in one",
+  "description": "Extension for Bitcointalk — themes, zoom, direction, emoji toolbar and more",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -20,6 +20,7 @@
       "128": "icons/icon128.png"
     }
   },
+
   "content_scripts": [
     {
       "matches": [
@@ -29,22 +30,39 @@
       "js": [
         "js/content.js"
       ],
-      "run_at": "document_end",
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.bitcointalk.org/*",
+        "http://*.bitcointalk.org/*"
+      ],
+      "js": [
+        "js/emoji-toolbar.js",
+        "js/emoticon-replacer.js"
+      ],
+      "run_at": "document_idle",
       "all_frames": false
     }
   ],
+
   "host_permissions": [
     "https://*.bitcointalk.org/*",
     "http://*.bitcointalk.org/*"
   ],
+
   "permissions": [
     "storage"
   ],
+
   "web_accessible_resources": [
     {
       "resources": [
         "css/bitcointalk/*.css",
-        "icons/*.png"
+        "icons/*.png",
+        "images/emojis/*",
+        "css/popup.css"
       ],
       "matches": [
         "https://*.bitcointalk.org/*",

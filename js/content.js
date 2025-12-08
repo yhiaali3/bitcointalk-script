@@ -1,3 +1,159 @@
+// js/content.js
+// Combined content script: early-inject (prevents FOUC) + Bitcointalk extension logic.
+// Make sure this file path matches manifest and that css/bitcointalk/custom.css exists in your extension.
+
+(function earlyInject() {
+  try {
+    // Apply only for top frame
+    if (window !== window.top) return;
+
+    // Prevent double injection
+    if (window.__bitcointalk_early_injected) return;
+    window.__bitcointalk_early_injected = true;
+
+    const MAX_HIDE_TIMEOUT = 3000; // ms - قابل للتعديل
+    const TEST_VAR_NAME = '--bt-inject-test';
+    const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
+
+    // Hide document immediately to prevent FOUC
+    const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
+    try { if (document.documentElement) document.documentElement.style.visibility = 'hidden'; } catch (e) { /* ignore */ }
+
+    let revealed = false;
+    function revealDocument() {
+      if (revealed) return;
+      revealed = true;
+      try { if (document.documentElement) document.documentElement.style.visibility = prevVisibility || ''; } catch (e) { /* ignore */ }
+    }
+
+    // Utility: insert a <style> with cssText and test if it applied (via custom property)
+    function insertStyleAndTest(cssText) {
+      return new Promise(resolve => {
+        try {
+          const style = document.createElement('style');
+          style.setAttribute('data-bt-early', '1');
+          const testCss = `:root { ${TEST_VAR_NAME}: injected; }`;
+          style.textContent = cssText + '\n' + testCss;
+          (document.head || document.documentElement).appendChild(style);
+
+          requestAnimationFrame(() => {
+            try {
+              const val = getComputedStyle(document.documentElement).getPropertyValue(TEST_VAR_NAME).trim();
+              const applied = (val === 'injected');
+              resolve({ applied, style });
+            } catch (err) {
+              resolve({ applied: false, style });
+            }
+          });
+        } catch (err) {
+          resolve({ applied: false, style: null });
+        }
+      });
+    }
+
+    // Utility: try blob fallback (create blob URL and attach link)
+    function tryBlobLink(cssText) {
+      return new Promise(resolve => {
+        try {
+          const blob = new Blob([cssText], { type: 'text/css' });
+          const blobUrl = URL.createObjectURL(blob);
+          const linkBlob = document.createElement('link');
+          linkBlob.rel = 'stylesheet';
+          linkBlob.href = blobUrl;
+
+          const cleanup = (success) => {
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+            resolve(success);
+          };
+
+          linkBlob.onload = function () { cleanup(true); };
+          linkBlob.onerror = function () { cleanup(false); };
+
+          (document.head || document.documentElement).appendChild(linkBlob);
+
+          setTimeout(() => cleanup(false), 2000);
+        } catch (err) {
+          resolve(false);
+        }
+      });
+    }
+
+    // Main flow with fallbacks
+    const overallTimeout = setTimeout(() => {
+      console.warn('early-inject: overall timeout, revealing document');
+      revealDocument();
+    }, MAX_HIDE_TIMEOUT);
+
+    // First attempt: try loading chrome-extension:// link (fastest)
+    const primaryLink = document.createElement('link');
+    primaryLink.rel = 'stylesheet';
+    primaryLink.href = extensionCssPath;
+
+    let handled = false;
+
+    primaryLink.onload = function () {
+      if (handled) return;
+      handled = true;
+      clearTimeout(overallTimeout);
+      console.info('early-inject: extension link loaded');
+      revealDocument();
+    };
+
+    primaryLink.onerror = async function () {
+      if (handled) return;
+      handled = true;
+      console.warn('early-inject: extension link failed — attempting inline fetch + test');
+      try {
+        // fetch CSS content from extension resource
+        const resp = await fetch(extensionCssPath);
+        if (!resp.ok) throw new Error('fetch failed ' + resp.status);
+        const cssText = await resp.text();
+
+        // Try inline <style> first
+        const { applied, style } = await insertStyleAndTest(cssText);
+        if (applied) {
+          clearTimeout(overallTimeout);
+          console.info('early-inject: inline style applied successfully');
+          revealDocument();
+          return;
+        } else {
+          try { if (style && style.parentNode) style.parentNode.removeChild(style); } catch (e) { /* ignore */ }
+          console.warn('early-inject: inline style did not take effect (likely CSP). Trying blob fallback.');
+        }
+
+        // Try blob link fallback (may bypass chrome-extension: scheme but can still be blocked by CSP)
+        const blobSuccess = await tryBlobLink(cssText);
+        if (blobSuccess) {
+          clearTimeout(overallTimeout);
+          console.info('early-inject: blob stylesheet applied successfully');
+          revealDocument();
+          return;
+        } else {
+          console.warn('early-inject: blob fallback failed or was blocked by CSP');
+        }
+      } catch (err) {
+        console.warn('early-inject: fetch/inline/blob fallback failed', err);
+      } finally {
+        clearTimeout(overallTimeout);
+        revealDocument();
+      }
+    };
+
+    (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(primaryLink);
+
+    document.addEventListener('DOMContentLoaded', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+    window.addEventListener('load', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+
+  } catch (err) {
+    console.error('early-inject error', err);
+    try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
+  }
+})();
+
+/* =========================
+   Existing Bitcointalk code (kept, initialization deferred until DOM ready)
+   ========================= */
+
 const Bitcointalk = {
     init: function (key, value, event) {
         this.setStorage(key, value);
@@ -538,12 +694,8 @@ const Bitcointalk = {
             // Inject minimal CSS to style the button
             const style = document.createElement('style');
             style.textContent = `
-                /* Use fixed positioning and high z-index so the button follows viewport coordinates.
-                   position:fixed + coordinates based on getBoundingClientRect() works reliably
-                   across browser zoom, CSS zoom (document.body.style.zoom) and transform-based scaling
-                   in most common setups. */
                 .__cq-btn {
-                    position: fixed;
+                    position: absolute;
                     display: none;
                     z-index: 2147483647;
                     background: #e7eaef;
@@ -589,10 +741,7 @@ const Bitcointalk = {
 
             function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-            // Calculate and set the button position relative to the selection using viewport coordinates.
-            // Important: we use position:fixed on the button and coordinates directly from getClientRects()
-            // (viewport space), so we DON'T add scroll offsets. This makes the button resilient to
-            // browser zoom, CSS zoom and transform scaling of content.
+            // Calculate and set the button position relative to the selection
             function updateButtonPositionForSelection(selection) {
                 if (!selection || selection.isCollapsed) { hideButton(); return; }
                 let range;
@@ -606,12 +755,13 @@ const Bitcointalk = {
                 let rect = (rects && rects.length) ? rects[rects.length - 1] : range.getBoundingClientRect();
                 if (!rect || (rect.width === 0 && rect.height === 0)) { hideButton(); return; }
 
+                const scrollX = window.scrollX || window.pageXOffset || 0;
+                const scrollY = window.scrollY || window.pageYOffset || 0;
                 const gap = 8;
-                // rect.left / rect.bottom are viewport coordinates; since button is fixed we use them directly
-                let left = rect.left;
-                let top = rect.bottom + gap;
+                let left = rect.left + scrollX;
+                let top = rect.bottom + scrollY + gap;
 
-                // Ensure button visible to measure it
+                // Temporarily ensure button is displayed to measure it
                 const prevDisplay = btn.style.display;
                 btn.style.left = '0px';
                 btn.style.top = '0px';
@@ -619,21 +769,20 @@ const Bitcointalk = {
                 const btnBox = btn.getBoundingClientRect();
                 btn.style.display = prevDisplay || (btn.classList.contains('__cq-hidden') ? 'none' : 'block');
 
-                const vw = window.innerWidth || document.documentElement.clientWidth;
-                const vh = window.innerHeight || document.documentElement.clientHeight;
+                const vw = document.documentElement.clientWidth;
+                const vh = document.documentElement.clientHeight;
 
                 // Clamp horizontally within viewport (with small margin)
-                left = clamp(left, 8, vw - btnBox.width - 8);
+                left = clamp(left, scrollX + 8, scrollX + vw - btnBox.width - 8);
 
                 // If not enough space below, place above selection
-                if (top + btnBox.height > vh - 8) {
-                    top = rect.top - btnBox.height - gap;
+                if (top + btnBox.height > scrollY + vh - 8) {
+                    top = rect.top + scrollY - btnBox.height - gap;
                 }
 
-                // Final clamp vertically
-                top = clamp(top, 8, vh - btnBox.height - 8);
+                // Ensure button stays within document bounds
+                top = Math.max(scrollY + 8, Math.min(top, scrollY + document.documentElement.scrollHeight - btnBox.height - 8));
 
-                // Apply CSS fixed coordinates
                 btn.style.left = `${Math.round(left)}px`;
                 btn.style.top = `${Math.round(top)}px`;
 
@@ -847,28 +996,6 @@ const Bitcointalk = {
             window.addEventListener('scroll', debouncedUpdate, true);
             window.addEventListener('resize', debouncedUpdate);
 
-            // Observe style/class changes on html/body to catch CSS zoom changes (document.body.style.zoom)
-            // or other attribute changes that can affect computed positions (e.g. transform changes).
-            try {
-                const observer = new MutationObserver(debounce(mutations => {
-                    const sel = document.getSelection();
-                    if (sel && !sel.isCollapsed && btn.style.display !== 'none') {
-                        updateButtonPositionForSelection(sel);
-                    }
-                }, 30));
-
-                // observe changes to style and class on <html> and <body>
-                if (document.documentElement) {
-                    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
-                }
-                if (document.body) {
-                    observer.observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
-                }
-            } catch (e) {
-                // If MutationObserver unavailable or fails, it's non-fatal
-                console.warn('MutationObserver not available for quick-quote repositioning', e);
-            }
-
             // Hide initially
             hideButton();
 
@@ -878,34 +1005,56 @@ const Bitcointalk = {
     // end of Bitcointalk object
 };
 
-// الاستماع للرسائل من popup.js
+// Listener from popup.js
 chrome.runtime.onMessage.addListener(
     function (message) {
-        Bitcointalk.init(message.key, message.value, 0);
+        // Support handling toggles from popup for future extension
+        if (message && message.type === 'emoji-toolbar-toggle') {
+            // emoji toolbar is handled by emoji-toolbar.js
+        } else if (message && message.type === 'emoticon-replacer-toggle') {
+            // emoticon replacer handled if included separately
+        } else if (message && message.key) {
+            Bitcointalk.init(message.key, message.value, 0);
+        }
     }
 );
 
-// التهيئة عند تحميل الصفحة
-chrome.storage.local.get('bitcointalk', function (storage) {
-    Bitcointalk.externalLink();
-    Bitcointalk.scrollToTop();
-    Bitcointalk.sumMerit();
-    Bitcointalk.highlightMyNameInMerit();
-    Bitcointalk.enhancedReportToModeratorUI();
-    Bitcointalk.toggleMerit();
+// Defer DOM-dependent initialization until DOM is ready
+(function runWhenReady() {
+    function doInit() {
+        chrome.storage.local.get('bitcointalk', function (storage) {
+            try {
+                Bitcointalk.externalLink();
+                Bitcointalk.scrollToTop();
+                Bitcointalk.sumMerit();
+                Bitcointalk.highlightMyNameInMerit();
+                Bitcointalk.enhancedReportToModeratorUI();
+                Bitcointalk.toggleMerit();
 
-    // استدعاء Quick Quote init
-    try {
-        if (typeof Bitcointalk.initQuickQuote === 'function') {
-            Bitcointalk.initQuickQuote();
-        }
-    } catch (e) {
-        console.error('initQuickQuote error', e);
-    }
+                // initialize Quick Quote
+                try {
+                    if (typeof Bitcointalk.initQuickQuote === 'function') {
+                        Bitcointalk.initQuickQuote();
+                    }
+                } catch (e) {
+                    console.error('initQuickQuote error', e);
+                }
 
-    if (typeof Object.keys(storage) !== 'undefined' && Object.keys(storage).length > 0) {
-        Object.keys(storage.bitcointalk).map(function (key) {
-            Bitcointalk.init(key, storage.bitcointalk[key], 1);
+                if (typeof Object.keys(storage) !== 'undefined' && Object.keys(storage).length > 0) {
+                    Object.keys(storage.bitcointalk).map(function (key) {
+                        Bitcointalk.init(key, storage.bitcointalk[key], 1);
+                    });
+                }
+            } catch (e) {
+                console.error('Bitcointalk init error', e);
+            }
         });
     }
-});
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', doInit, { once: true });
+    } else {
+        // DOM already ready
+        doInit();
+    }
+})();
