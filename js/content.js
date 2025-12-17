@@ -682,6 +682,10 @@ const Bitcointalk = {
         }
     },
 
+    isLoggedIn: function () {
+        return [...document.querySelectorAll("td.maintab_back")].length === 8; // count how many tabs there is, to determine if user is logged in.
+    },
+
     // Quick Quote feature integrated (updated positioning & robustness)
     initQuickQuote: function () {
         (function () {
@@ -1027,9 +1031,12 @@ chrome.runtime.onMessage.addListener(
                 Bitcointalk.externalLink();
                 Bitcointalk.scrollToTop();
                 Bitcointalk.sumMerit();
-                Bitcointalk.highlightMyNameInMerit();
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
+
+                if (Bitcointalk.isLoggedIn()) {
+                    Bitcointalk.highlightMyNameInMerit();
+                }
 
                 // initialize Quick Quote
                 try {
