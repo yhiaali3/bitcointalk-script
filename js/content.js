@@ -682,6 +682,23 @@ const Bitcointalk = {
         }
     },
 
+    format_counters: function () {
+        function format_number(number, compact) {
+            const formatter = new Intl.NumberFormat('en', {
+                notation: compact ? 'compact' : 'standard',
+            });
+            const numberToDisplay = formatter.format(number);
+            return numberToDisplay;
+        }
+
+        document.querySelectorAll('td.windowbg[valign="middle"]').forEach(function (td) {
+            td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
+                // format_number(match, true) for numbers like 8.4M, 66K.
+                return format_number(match, false);
+            });
+        });
+    },
+
     // Quick Quote feature integrated (updated positioning & robustness)
     initQuickQuote: function () {
         (function () {
@@ -1030,6 +1047,7 @@ chrome.runtime.onMessage.addListener(
                 Bitcointalk.highlightMyNameInMerit();
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
+		Bitcointalk.format_counters();
 
                 // initialize Quick Quote
                 try {
