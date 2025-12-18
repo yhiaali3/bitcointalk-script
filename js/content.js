@@ -692,10 +692,12 @@ const Bitcointalk = {
         }
 
         document.querySelectorAll('td.windowbg[valign="middle"]').forEach(function (td) {
-            td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
-                // format_number(match, true) for numbers like 8.4M, 66K.
-                return format_number(match, false);
-            });
+            if (td.innerHTML.includes("Posts") || td.innerHTML.includes("Topics")) {
+                td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
+                    // format_number(match, false) for numbers like 8.4M, 66K.
+                    return format_number(match, false);
+                });
+            }
         });
     },
 
