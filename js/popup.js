@@ -26,7 +26,7 @@ const EMOJI_CATALOG = [
 ];
 
 function getDefaultToolbarList() {
-  return ['evil-grin.png','smile.png','joy.png','love.png','laugh.png','thumbs-up.png','sad.png','angry.png','surprised.png','wink.png','cry.png','thinking.png'];
+  return ['evil-grin.png', 'smile.png', 'joy.png', 'love.png', 'laugh.png', 'thumbs-up.png', 'sad.png', 'angry.png', 'surprised.png', 'wink.png', 'cry.png', 'thinking.png'];
 }
 
 $(function () {
@@ -83,7 +83,7 @@ $(function () {
         // mark theme button active
         $(`button[data-key="${k}"][data-value="${v}"]`).addClass('active');
         // toggle style for on/off type keys
-        if (['signature','avatar','price','pins','direction'].includes(k)) {
+        if (['signature', 'avatar', 'price', 'pins', 'direction'].includes(k)) {
           setToggleButtonVisual(k, v);
         }
       });
@@ -106,8 +106,8 @@ $(function () {
         // notify active tab that settings changed
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
           for (const tab of tabs) {
-            chrome.tabs.sendMessage(tab.id, { type: key + '-toggle', value }, () => {});
-            if (key === 'emojiToolbarList') chrome.tabs.sendMessage(tab.id, { type: 'emoji-toolbar-update' }, () => {});
+            chrome.tabs.sendMessage(tab.id, { type: key + '-toggle', value });
+            if (key === 'emojiToolbarList') chrome.tabs.sendMessage(tab.id, { type: 'emoji-toolbar-update' });
           }
         });
       });
@@ -155,7 +155,7 @@ $(function () {
     if (key === 'theme') {
       $(`button[data-key="theme"]`).removeClass('active');
       $(this).addClass('active');
-    } else if (['signature','avatar','price','pins','direction'].includes(key)) {
+    } else if (['signature', 'avatar', 'price', 'pins', 'direction'].includes(key)) {
       // update visual state for toggle groups: mark the clicked value visually
       setToggleButtonVisual(key, value);
     }
@@ -163,7 +163,7 @@ $(function () {
     saveKeyValue(key, value);
     // notify content script
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      for (const tab of tabs) chrome.tabs.sendMessage(tab.id, { key: key, value: value }, () => {});
+      for (const tab of tabs) chrome.tabs.sendMessage(tab.id, { key: key, value: value });
     });
   });
 
@@ -175,7 +175,7 @@ $(function () {
     saveKeyValue('zoom', val);
     // notify tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      for (const tab of tabs) chrome.tabs.sendMessage(tab.id, { key: 'zoom', value: val }, () => {});
+      for (const tab of tabs) chrome.tabs.sendMessage(tab.id, { key: 'zoom', value: val });
     });
   });
 
