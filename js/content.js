@@ -761,6 +761,52 @@ const Bitcointalk = {
         }
     },
 
+    addBoardNavigation: function () {
+        // check if on a board
+        url = window.location.href;
+        if (url.includes("?board=")) {
+            board = url.replace(/(\.\d+)$/, '');
+        }
+        else {
+            return;
+        }
+        // find ... elements
+        document.querySelectorAll('td.middletext').forEach(function (td) {
+            const bElements = td.querySelectorAll('b');
+
+            bElements.forEach(element => {
+                if (element.innerHTML.includes("...")) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.min = 1;
+                    input.placeholder = 'Go';
+                    input.style.width = '30px';
+                    input.style.fontSize = '10px';
+
+                    // replace ... elements with a small input box
+                    element.innerHTML = '';
+                    element.appendChild(input);
+
+                    input.addEventListener('keydown', function (event) {
+                        if (event.key === 'Enter') {
+                            const pageNum = parseInt(input.value, 10);
+
+                            if (pageNum && pageNum > 0) {
+                                // const threadCount = Math.floor(document.querySelectorAll('td.windowbg[valign="middle"]').length / 3);
+                                // build url
+                                const threadCount = 40;
+                                const offset = (pageNum - 1) * threadCount;
+                                console.log(offset, pageNum, threadCount)
+                                window.location.href = board + '.' + offset;
+                            } else {
+                                alert('Please enter a valid page number.');
+                            }
+                        }
+                    });
+                }
+            });
+
+        })
     format_counters: function () {
         function format_number(number, compact) {
             const formatter = new Intl.NumberFormat('en', {
@@ -1131,7 +1177,8 @@ chrome.runtime.onMessage.addListener(
                 Bitcointalk.highlightMyNameInMerit();
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
-		Bitcointalk.format_counters();
+                Bitcointalk.addBoardNavigation();
+		            Bitcointalk.format_counters();
 
                 // initialize Quick Quote
                 try {
