@@ -3,152 +3,234 @@
 // Make sure this file path matches manifest and that css/bitcointalk/custom.css exists in your extension.
 
 (function earlyInject() {
-  try {
-    // Apply only for top frame
-    if (window !== window.top) return;
+    try {
+        // Apply only for top frame
+        if (window !== window.top) return;
 
-    // Prevent double injection
-    if (window.__bitcointalk_early_injected) return;
-    window.__bitcointalk_early_injected = true;
+        // Prevent double injection
+        if (window.__bitcointalk_early_injected) return;
+        window.__bitcointalk_early_injected = true;
 
-    const MAX_HIDE_TIMEOUT = 3000; // ms - قابل للتعديل
-    const TEST_VAR_NAME = '--bt-inject-test';
-    const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
+        const MAX_HIDE_TIMEOUT = 3000; // ms - قابل للتعديل
+        const TEST_VAR_NAME = '--bt-inject-test';
+        const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
 
-    // Hide document immediately to prevent FOUC
-    const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
-    try { if (document.documentElement) document.documentElement.style.visibility = 'hidden'; } catch (e) { /* ignore */ }
+        // Hide document immediately to prevent FOUC
+        const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
+        try { if (document.documentElement) document.documentElement.style.visibility = 'hidden'; } catch (e) { /* ignore */ }
 
-    let revealed = false;
-    function revealDocument() {
-      if (revealed) return;
-      revealed = true;
-      try { if (document.documentElement) document.documentElement.style.visibility = prevVisibility || ''; } catch (e) { /* ignore */ }
-    }
+        let revealed = false;
+        function revealDocument() {
+            if (revealed) return;
+            revealed = true;
+            try { if (document.documentElement) document.documentElement.style.visibility = prevVisibility || ''; } catch (e) { /* ignore */ }
+        }
 
-    // Utility: insert a <style> with cssText and test if it applied (via custom property)
-    function insertStyleAndTest(cssText) {
-      return new Promise(resolve => {
-        try {
-          const style = document.createElement('style');
-          style.setAttribute('data-bt-early', '1');
-          const testCss = `:root { ${TEST_VAR_NAME}: injected; }`;
-          style.textContent = cssText + '\n' + testCss;
-          (document.head || document.documentElement).appendChild(style);
+        // Utility: insert a <style> with cssText and test if it applied (via custom property)
+        function insertStyleAndTest(cssText) {
+            return new Promise(resolve => {
+                try {
+                    const style = document.createElement('style');
+                    style.setAttribute('data-bt-early', '1');
+                    const testCss = `:root { ${TEST_VAR_NAME}: injected; }`;
+                    style.textContent = cssText + '\n' + testCss;
+                    (document.head || document.documentElement).appendChild(style);
 
-          requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        try {
+                            const val = getComputedStyle(document.documentElement).getPropertyValue(TEST_VAR_NAME).trim();
+                            const applied = (val === 'injected');
+                            resolve({ applied, style });
+                        } catch (err) {
+                            resolve({ applied: false, style });
+                        }
+                    });
+                } catch (err) {
+                    resolve({ applied: false, style: null });
+                }
+            });
+        }
+
+        // Utility: try blob fallback (create blob URL and attach link)
+        function tryBlobLink(cssText) {
+            return new Promise(resolve => {
+                try {
+                    const blob = new Blob([cssText], { type: 'text/css' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    const linkBlob = document.createElement('link');
+                    linkBlob.rel = 'stylesheet';
+                    linkBlob.href = blobUrl;
+
+                    const cleanup = (success) => {
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                        resolve(success);
+                    };
+
+                    linkBlob.onload = function () { cleanup(true); };
+                    linkBlob.onerror = function () { cleanup(false); };
+
+                    (document.head || document.documentElement).appendChild(linkBlob);
+
+                    setTimeout(() => cleanup(false), 2000);
+                } catch (err) {
+                    resolve(false);
+                }
+            });
+        }
+
+        // Main flow with fallbacks
+        const overallTimeout = setTimeout(() => {
+            console.warn('early-inject: overall timeout, revealing document');
+            revealDocument();
+        }, MAX_HIDE_TIMEOUT);
+
+        // First attempt: try loading chrome-extension:// link (fastest)
+        const primaryLink = document.createElement('link');
+        primaryLink.rel = 'stylesheet';
+        primaryLink.href = extensionCssPath;
+
+        let handled = false;
+
+        primaryLink.onload = function () {
+            if (handled) return;
+            handled = true;
+            clearTimeout(overallTimeout);
+            console.info('early-inject: extension link loaded');
+            revealDocument();
+        };
+
+        primaryLink.onerror = async function () {
+            if (handled) return;
+            handled = true;
+            console.warn('early-inject: extension link failed — attempting inline fetch + test');
             try {
-              const val = getComputedStyle(document.documentElement).getPropertyValue(TEST_VAR_NAME).trim();
-              const applied = (val === 'injected');
-              resolve({ applied, style });
+                // fetch CSS content from extension resource
+                const resp = await fetch(extensionCssPath);
+                if (!resp.ok) throw new Error('fetch failed ' + resp.status);
+                const cssText = await resp.text();
+
+                // Try inline <style> first
+                const { applied, style } = await insertStyleAndTest(cssText);
+                if (applied) {
+                    clearTimeout(overallTimeout);
+                    console.info('early-inject: inline style applied successfully');
+                    revealDocument();
+                    return;
+                } else {
+                    try { if (style && style.parentNode) style.parentNode.removeChild(style); } catch (e) { /* ignore */ }
+                    console.warn('early-inject: inline style did not take effect (likely CSP). Trying blob fallback.');
+                }
+
+                // Try blob link fallback (may bypass chrome-extension: scheme but can still be blocked by CSP)
+                const blobSuccess = await tryBlobLink(cssText);
+                if (blobSuccess) {
+                    clearTimeout(overallTimeout);
+                    console.info('early-inject: blob stylesheet applied successfully');
+                    revealDocument();
+                    return;
+                } else {
+                    console.warn('early-inject: blob fallback failed or was blocked by CSP');
+                }
             } catch (err) {
-              resolve({ applied: false, style });
+                console.warn('early-inject: fetch/inline/blob fallback failed', err);
+            } finally {
+                clearTimeout(overallTimeout);
+                revealDocument();
             }
-          });
-        } catch (err) {
-          resolve({ applied: false, style: null });
-        }
-      });
+        };
+
+        (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(primaryLink);
+
+        document.addEventListener('DOMContentLoaded', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+        window.addEventListener('load', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+
+    } catch (err) {
+        console.error('early-inject error', err);
+        try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
     }
-
-    // Utility: try blob fallback (create blob URL and attach link)
-    function tryBlobLink(cssText) {
-      return new Promise(resolve => {
-        try {
-          const blob = new Blob([cssText], { type: 'text/css' });
-          const blobUrl = URL.createObjectURL(blob);
-          const linkBlob = document.createElement('link');
-          linkBlob.rel = 'stylesheet';
-          linkBlob.href = blobUrl;
-
-          const cleanup = (success) => {
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-            resolve(success);
-          };
-
-          linkBlob.onload = function () { cleanup(true); };
-          linkBlob.onerror = function () { cleanup(false); };
-
-          (document.head || document.documentElement).appendChild(linkBlob);
-
-          setTimeout(() => cleanup(false), 2000);
-        } catch (err) {
-          resolve(false);
-        }
-      });
-    }
-
-    // Main flow with fallbacks
-    const overallTimeout = setTimeout(() => {
-      console.warn('early-inject: overall timeout, revealing document');
-      revealDocument();
-    }, MAX_HIDE_TIMEOUT);
-
-    // First attempt: try loading chrome-extension:// link (fastest)
-    const primaryLink = document.createElement('link');
-    primaryLink.rel = 'stylesheet';
-    primaryLink.href = extensionCssPath;
-
-    let handled = false;
-
-    primaryLink.onload = function () {
-      if (handled) return;
-      handled = true;
-      clearTimeout(overallTimeout);
-      console.info('early-inject: extension link loaded');
-      revealDocument();
-    };
-
-    primaryLink.onerror = async function () {
-      if (handled) return;
-      handled = true;
-      console.warn('early-inject: extension link failed — attempting inline fetch + test');
-      try {
-        // fetch CSS content from extension resource
-        const resp = await fetch(extensionCssPath);
-        if (!resp.ok) throw new Error('fetch failed ' + resp.status);
-        const cssText = await resp.text();
-
-        // Try inline <style> first
-        const { applied, style } = await insertStyleAndTest(cssText);
-        if (applied) {
-          clearTimeout(overallTimeout);
-          console.info('early-inject: inline style applied successfully');
-          revealDocument();
-          return;
-        } else {
-          try { if (style && style.parentNode) style.parentNode.removeChild(style); } catch (e) { /* ignore */ }
-          console.warn('early-inject: inline style did not take effect (likely CSP). Trying blob fallback.');
-        }
-
-        // Try blob link fallback (may bypass chrome-extension: scheme but can still be blocked by CSP)
-        const blobSuccess = await tryBlobLink(cssText);
-        if (blobSuccess) {
-          clearTimeout(overallTimeout);
-          console.info('early-inject: blob stylesheet applied successfully');
-          revealDocument();
-          return;
-        } else {
-          console.warn('early-inject: blob fallback failed or was blocked by CSP');
-        }
-      } catch (err) {
-        console.warn('early-inject: fetch/inline/blob fallback failed', err);
-      } finally {
-        clearTimeout(overallTimeout);
-        revealDocument();
-      }
-    };
-
-    (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(primaryLink);
-
-    document.addEventListener('DOMContentLoaded', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
-    window.addEventListener('load', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
-
-  } catch (err) {
-    console.error('early-inject error', err);
-    try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
-  }
 })();
+
+// background.js crypto prices getter
+// moved to content.js because of Chrome manifest v3 restrictions
+
+let prices = {
+    btc: 0,
+    eth: 0
+};
+
+let ws = null;
+
+// Function to connect to the WebSocket
+function connectWebSocket() {
+    try {
+        ws = new WebSocket("wss://push.coinmarketcap.com/ws?device=web&client_source=home_page");
+
+        ws.onopen = function () {
+            console.log("WebSocket connection established.");
+            // Subscribe to the price updates
+            const subscribeMessage = {
+                "method": "RSUBSCRIPTION",
+                "params": ["main-site@crypto_price_5s@{}@normal", "1,1027"]
+            };
+            ws.send(JSON.stringify(subscribeMessage));
+        };
+
+        // Handle incoming WebSocket messages
+        ws.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.d) {
+                    if (data.d.id === 1) { // BTC price update
+                        prices.btc = data.d.p;
+                    } else if (data.d.id === 1027) { // ETH price update
+                        prices.eth = data.d.p;
+                    }
+                }
+            } catch (err) {
+                console.error("Error parsing WebSocket message:", err);
+            }
+        };
+
+        ws.onerror = function (error) {
+            console.error("WebSocket Error:", error);
+        };
+
+        ws.onclose = function (event) {
+            console.warn("WebSocket connection closed:", event.code, event.reason);
+        };
+
+    } catch (error) {
+        console.error("Couldn't connect to CMC WebSocket:", error);
+        attemptReconnect();
+    }
+}
+
+// Reconnect WebSocket if disconnected
+function attemptReconnect() {
+    console.log("Attempting to reconnect to WebSocket...");
+    setTimeout(() => {
+        connectWebSocket();
+    }, 5000);
+}
+
+// Disconnect WebSocket
+function disconnect() {
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+}
+
+// Listen for requests from the content script
+
+function fetchPrices() {
+    if (!ws) {
+        connectWebSocket();
+    }
+    return { success: true, prices: { btc: prices.btc, eth: prices.eth }, source: "coinmarketcap.com" }
+}
+
 
 /* =========================
    Existing Bitcointalk code (kept, initialization deferred until DOM ready)
@@ -624,42 +706,39 @@ const Bitcointalk = {
         }
     },
     displayBitcoinPrice: function (value) {
-        let header = document.querySelectorAll("td.catbg")[1];
+        let header = document.querySelectorAll("td.catbg")[1]; // Or adjust to your specific page structure
         if (value === "on") {
-            this.getAnStorage("storagePrice", storagePrice => {
-                let dialogPriceNode = document.createElement("div");
-                dialogPriceNode.style = "display: none;position: fixed;top: 0;right: 0;z-index: 100;padding: 10px;border-radius:50px;margin: 5px 5px 0px 0px;";
-                dialogPriceNode.setAttribute("class", "dialog-price catbg");
+            this.updatePricesInterval = setInterval(() => {
+                this.updatePrices(header);
+            }, 3000);
+        }
+        if (value === "off") {
+            clearInterval(this.updatePricesInterval);
+            header.innerHTML = `<img src="https://bitcointalk.org/Themes/custom1/images/smflogo.gif" style="margin: 2px;" alt="">`;
+            disconnect();
+        }
+    },
+    updatePrices: function (container) {
+        try {
+            let response = fetchPrices()
+            if (response.success) {
+                const btcPrice = response.prices.btc.toLocaleString();
+                const ethPrice = response.prices.eth.toLocaleString();
 
-                if (storagePrice && Object.keys(storagePrice).length > 0 && (storagePrice.timestamp + 600) > Math.floor(Date.now() / 1000)) {
-                    header.innerHTML = storagePrice.html;
-                    dialogPriceNode.innerHTML = storagePrice.html;
-                    document.getElementsByClassName('tborder')[0].appendChild(dialogPriceNode);
-                } else {
-                    this.httpGet("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd", response => {
-                        let price = JSON.parse(response);
-                        if (price.bitcoin && price.ethereum) {
-                            let html = [
-                                `$${price.bitcoin.usd.toLocaleString()}/BTC`,
-                                ` | `,
-                                `$${price.ethereum.usd.toLocaleString()}/ETH`
-                            ].join("");
-                            header.innerHTML = html;
-                            dialogPriceNode.innerHTML = html;
-                            document.getElementsByClassName('tborder')[0].appendChild(dialogPriceNode);
-                            this.setStorage('storagePrice', {
-                                'html': html,
-                                'timestamp': Math.floor(Date.now() / 1000)
-                            });
-                        } else {
-                            header.innerHTML = "Can't get the price of Bitcoin";
-                        }
-                    });
-                }
-            });
-        } else {
-            let dialogPrice = document.getElementsByClassName("dialog-price");
-            if (dialogPrice.length > 0) dialogPrice[0].remove();
+                let html = [
+                    `$${btcPrice}/BTC`,
+                    ` | `,
+                    `$${ethPrice}/ETH`
+                ].join("");
+
+                container.innerHTML = html; // Display the price in your header or desired location
+            } else {
+                container.innerHTML = "Can't fetch prices.";
+                throw new Error(response.error || "Unknown error");
+            }
+        } catch (error) {
+            console.error('Error fetching crypto prices:', err);
+            container.textContent = '⚠️ Prices unavailable. May be blocked in your region.';
         }
     },
     // New: toggle page direction (rtl / ltr)
@@ -728,6 +807,26 @@ const Bitcointalk = {
             });
 
         })
+    format_counters: function () {
+        function format_number(number, compact) {
+            const formatter = new Intl.NumberFormat('en', {
+                notation: compact ? 'compact' : 'standard',
+            });
+            const numberToDisplay = formatter.format(number);
+            return numberToDisplay;
+        }
+
+        document.querySelectorAll('td.windowbg[valign="middle"]').forEach(function (td) {
+        format_counters
+            if (td.innerHTML.includes("Posts") || td.innerHTML.includes("Topics")) {
+                td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
+                    // format_number(match, false) for numbers like 8.4M, 66K.
+                    return format_number(match, false);
+                });
+            }
+
+          
+        });
     },
 
     // Quick Quote feature integrated (updated positioning & robustness)
@@ -1079,6 +1178,7 @@ chrome.runtime.onMessage.addListener(
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
                 Bitcointalk.addBoardNavigation();
+		            Bitcointalk.format_counters();
 
                 // initialize Quick Quote
                 try {
