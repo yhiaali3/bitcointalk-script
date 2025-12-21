@@ -761,6 +761,8 @@ const Bitcointalk = {
         }
     },
 
+    isLoggedIn: function () {
+        return [...document.querySelectorAll("td.maintab_back")].length === 8; // count how many tabs there is, to determine if user is logged in.
     addBoardNavigation: function () {
         // check if on a board
         url = window.location.href;
@@ -1174,11 +1176,14 @@ chrome.runtime.onMessage.addListener(
                 Bitcointalk.externalLink();
                 Bitcointalk.scrollToTop();
                 Bitcointalk.sumMerit();
-                Bitcointalk.highlightMyNameInMerit();
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
                 Bitcointalk.addBoardNavigation();
 		            Bitcointalk.format_counters();
+
+                if (Bitcointalk.isLoggedIn()) {
+                    Bitcointalk.highlightMyNameInMerit();
+                }
 
                 // initialize Quick Quote
                 try {
