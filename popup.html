@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Bitcointalk Script — Controls</title>
-  <link rel="stylesheet" href="css/popup.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bitcointalk Script — Controls</title>
+    <link rel="stylesheet" href="css/popup.css">
 </head>
+
 <body>
     <div class="app">
         <header class="app-header">
@@ -15,135 +17,187 @@
                 <small>Themes · Zoom · Direction · Emoji</small>
             </div>
         </header>
-
-        <main class="panels">
-
-            <!-- Emoji panel (collapsible, compact) -->
-            <section class="panel" id="panel-emoji">
-                <div class="panel-head">
-                    <h2>Emoji</h2>
-                    <div class="panel-controls">
-                        <span id="emojiStatus" class="status small"></span>
-                        <label class="switch compact">
-                            <input type="checkbox" id="enableEmoji">
-                            <span class="slider"></span>
-                        </label>
-                        <button id="toggleEmojiPanel" class="btn small">⇵</button>
-                    </div>
-                </div>
-                <div class="panel-body compact-body" id="emojiBody">
-                    <p class="muted">Small emoji picker — tick to enable toolbar;</p>
-                    <div id="emoji-grid" class="emoji-grid"></div>
-                </div>
-            </section>
-
-            <!-- Emoticon replacer -->
-            <section class="panel" id="panel-replacer">
-                <div class="panel-head">
-                    <h2>Emoticon replacer</h2>
-                    <div class="panel-controls">
-                        <span id="replacerStatus" class="status small"></span>
-                        <label class="switch compact">
-                            <input type="checkbox" id="enableReplacer">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-                <div class="panel-body">
-                    <p class="muted">Convert shortcuts (e.g. <code>^‑^</code>, <code>0:)</code>) to emoji while typing.</p>
-                </div>
-            </section>
-
-            <!-- Theme / Appearance -->
-            <section class="panel" id="panel-theme">
-                <div class="panel-head"><h2 style="font-size:18px; font-weight:800;">Theme & Display</h2></div>
-                <div class="panel-body">
-                    <div class="row">
-                        <label style="font-size:18px; font-weight:800;">Theme</label>
-                        <div class="btn-row" id="themeButtons">
-                            <button class="btn small" data-key="theme" data-value="on">Default</button>
-                            <button class="btn small" data-key="theme" data-value="1">Dark 1</button>
-                            <button class="btn small" data-key="theme" data-value="2">Bitcoin</button>
-                            <button class="btn small" data-key="theme" data-value="3">Dark 3</button>
-                            <button class="btn small" data-key="theme" data-value="4">Green</button>
-                            <button class="btn small" data-key="theme" data-value="5">Light</button>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <label style="font-size:18px; font-weight:800;">Signature</label>
-                        <div class="btn-row">
-                            <button class="btn small toggle-btn" data-key="signature" data-value="on">ON</button>
-                            <button class="btn small toggle-btn" data-key="signature" data-value="off">OFF</button>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <label style="font-size:18px; font-weight:800;">Avatar</label>
-                        <div class="btn-row">
-                            <button class="btn small toggle-btn" data-key="avatar" data-value="on">ON</button>
-                            <button class="btn small toggle-btn" data-key="avatar" data-value="off">OFF</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Price / Pins / Direction -->
-            <section class="panel" id="panel-others">
-                <div class="panel-head"><h2>Other</h2></div>
-                <div class="panel-body">
-                    <div class="row">
-                        <label style="font-size:16px; font-weight:700;">Show Price</label>
-                        <div class="btn-row">
-                            <button class="btn small toggle-btn" data-key="price" data-value="on">ON</button>
-                            <button class="btn small toggle-btn" data-key="price" data-value="off">OFF</button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <label style="font-size:14px; font-weight:800;">Pins</label>
-                        <div class="btn-row">
-                            <button class="btn small toggle-btn" data-key="pins" data-value="on">ON</button>
-                            <button class="btn small toggle-btn" data-key="pins" data-value="off">OFF</button>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <label style="font-size:18px; font-weight:600;">Direction</label>
-                        <div class="btn-row">
-                            <button class="btn small toggle-btn" data-key="direction" data-value="ltr">LTR</button>
-                            <button class="btn small toggle-btn" data-key="direction" data-value="rtl">RTL</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Zoom -->
-            <section class="panel" id="panel-zoom">
-                <div class="panel-head"><h2>Font size</h2></div>
-                <div class="panel-body">
-                    <div class="zoom-row">
-                        <input id="zoomSlider" type="range" min="50" max="200" step="5" value="100" data-key="zoom">
-                        <div class="zoom-info"><span id="zoomValue">100%</span></div>
-                    </div>
-                    <div class="muted small">Use the slider to change page zoom (stored per extension).</div>
-                </div>
-            </section>
-            
-        </main>
-
-        <footer class="app-footer">
-            <hr>
-            <a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
-            <br>
-            Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> - Version 2.5
-            <br>
-            Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> - Version 3
-            <br>
-            <a href="https://bitcointalk.org/index.php?topic=5558295" target="_blank">The Edit post on Bitcointalk</a>
-        </footer>
-    </div>
-    
-    
-    <script src="js/jquery-3.3.1.min.js"></script>
-    <script src="js/popup.js"></script>
 </body>
+
+</html>
+</div>
+<div class="panel-body">
+    <label for="themeName">Theme name:</label><br>
+    <input type="text" id="themeName" placeholder="Example: Dark Mode"><br>
+
+    <label for="customCss">Enter your CSS rules:</label><br>
+    <textarea id="customCss" rows="4" cols="40"
+        placeholder="/* Example: body { background: #222; color: #eee; } */"></textarea><br>
+    <button id="cleanTheme" class="theme-button" title="Clear the CSS code editor">🧹 Clean</button>
+    <button id="saveTheme" class="theme-button" title="Save the current theme">💾 Save</button>
+    <button id="applyTheme" class="theme-button" title="Apply the selected theme">🎨 Apply
+    </button>
+    <button id="deleteTheme" class="theme-button" title="Delete the selected theme">🗑️ Delete</button>
+    <button id="setDefaultTheme" class="theme-button" title="Set the selected theme as default">⭐ Set
+        Default</button>
+    <button id="exportThemes" class="theme-button" title="Export all saved themes to a JSON file">📤
+        Export</button>
+    <input type="file" id="importThemesFile" accept=".json" style="display:none" />
+    <button id="importThemes" class="theme-button" title="Import themes from a JSON file">📥
+        Import</button>
+    <h3 style="margin-bottom: 1px; margin-top: 0;">Saved Themes</h3>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <select id="themesList">
+            <option value="" disabled selected>Choose Theme to Apply</option>
+        </select>
+        <span style="color:#666464; font-size:13px;">Choose Theme to Apply</span>
+    </div>
+
+
+</div>
+</section>
+
+<!-- Custom Modal -->
+<div id="customModal" class="modal">
+    <div class="modal-content">
+        <p id="modalMessage"></p>
+        <div class="modal-actions">
+            <button id="modalOk" class="theme-button">✔ OK</button>
+            <button id="modalCancel" class="theme-button">✖ Cancel</button>
+        </div>
+    </div>
+</div>
+<!-- Emoji panel (collapsible, compact) -->
+<section class="panel" id="panel-emoji">
+    <div class="panel-head">
+        <h2>Emoji</h2>
+        <div class="panel-controls">
+            <span id="emojiStatus" class="status small"></span>
+            <label class="switch compact">
+                <input type="checkbox" id="enableEmoji">
+                <span class="slider"></span>
+            </label>
+            <button id="toggleEmojiPanel" class="btn small">⇵</button>
+        </div>
+    </div>
+    <div class="panel-body compact-body" id="emojiBody">
+        <p class="muted">Small emoji picker — tick to enable toolbar;</p>
+        <div id="emoji-grid" class="emoji-grid"></div>
+    </div>
+</section>
+
+<!-- Emoticon replacer -->
+<section class="panel" id="panel-replacer">
+    <div class="panel-head">
+        <h2>Emoticon replacer</h2>
+        <div class="panel-controls">
+            <span id="replacerStatus" class="status small"></span>
+            <label class="switch compact">
+                <input type="checkbox" id="enableReplacer">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    <div class="panel-body">
+        <p class="muted">Convert shortcuts (e.g. <code>^‑^</code>, <code>0:)</code>) to emoji while typing.
+        </p>
+    </div>
+</section>
+
+<!-- Theme / Appearance -->
+<section class="panel" id="panel-theme">
+    <div class="panel-head">
+        <h2 style="font-size:18px; font-weight:800;">Theme & Display</h2>
+    </div>
+    <div class="panel-body">
+        <div class="row">
+            <label style="font-size:18px; font-weight:800;">Theme</label>
+            <div class="btn-row" id="themeButtons">
+                <button class="btn small" data-key="theme" data-value="on">Default</button>
+                <button class="btn small" data-key="theme" data-value="1">Dark 1</button>
+                <button class="btn small" data-key="theme" data-value="2">Dark 2</button>
+                <button class="btn small" data-key="theme" data-value="3">Dark 3</button>
+                <button class="btn small" data-key="theme" data-value="4">Bitcoin</button>
+                <button class="btn small" id="resetTheme">Reset</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <label style="font-size:18px; font-weight:800;">Signature</label>
+            <div class="btn-row">
+                <button class="btn small toggle-btn" data-key="signature" data-value="on">ON</button>
+                <button class="btn small toggle-btn" data-key="signature" data-value="off">OFF</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <label style="font-size:18px; font-weight:800;">Avatar</label>
+            <div class="btn-row">
+                <button class="btn small toggle-btn" data-key="avatar" data-value="on">ON</button>
+                <button class="btn small toggle-btn" data-key="avatar" data-value="off">OFF</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Price / Pins / Direction -->
+<section class="panel" id="panel-others">
+    <div class="panel-head">
+        <h2>Other</h2>
+    </div>
+    <div class="panel-body">
+        <div class="row">
+            <label style="font-size:16px; font-weight:700;">Show Price</label>
+            <div class="btn-row">
+                <button class="btn small toggle-btn" data-key="price" data-value="on">ON</button>
+                <button class="btn small toggle-btn" data-key="price" data-value="off">OFF</button>
+            </div>
+        </div>
+        <div class="row">
+            <label style="font-size:14px; font-weight:800;">Pins</label>
+            <div class="btn-row">
+                <button class="btn small toggle-btn" data-key="pins" data-value="on">ON</button>
+                <button class="btn small toggle-btn" data-key="pins" data-value="off">OFF</button>
+            </div>
+        </div>
+        <div class="row">
+            <label style="font-size:18px; font-weight:600;">Direction</label>
+            <div class="btn-row">
+                <button class="btn small toggle-btn" data-key="direction" data-value="ltr">LTR</button>
+                <button class="btn small toggle-btn" data-key="direction" data-value="rtl">RTL</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Zoom -->
+<section class="panel" id="panel-zoom">
+    <div class="panel-head">
+        <h2>Font size</h2>
+    </div>
+    <div class="panel-body">
+        <div class="zoom-row">
+            <input id="zoomSlider" type="range" min="50" max="200" step="5" value="100" data-key="zoom">
+            <div class="zoom-info"><span id="zoomValue">100%</span></div>
+        </div>
+        <div class="muted small">Use the slider to change page zoom (stored per extension).</div>
+    </div>
+</section>
+
+</main>
+
+<footer class="app-footer">
+    <hr>
+    <a href="https://bitcointalk.org/index.php?topic=5178297" target="_blank">The post on Bitcointalk</a>
+    <br>
+    Author: <a href="https://bitcointalk.org/index.php?action=profile;u=1437909" target="_blank">mrvuit</a> -
+    Version 2.5
+    <br>
+    Edit By: <a href="https://bitcointalk.org/index.php?action=profile;u=2168312" target="_blank">yhiaali3</a> -
+    Version 3
+    <br>
+    <a href="https://bitcointalk.org/index.php?topic=5558295" target="_blank">The Edit post on Bitcointalk</a>
+</footer>
+</div>
+
+
+<script src="js/jquery-3.3.1.min.js"></script>
+<script src="js/popup.js"></script>
+</body>
+
 </html>

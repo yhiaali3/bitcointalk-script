@@ -1,155 +1,235 @@
+// canonical single-copy content.js, duplicates removed
 // js/content.js
 // Combined content script: early-inject (prevents FOUC) + Bitcointalk extension logic.
 // Make sure this file path matches manifest and that css/bitcointalk/custom.css exists in your extension.
 
 (function earlyInject() {
-  try {
-    // Apply only for top frame
-    if (window !== window.top) return;
+    try {
+        // Apply only for top frame
+        if (window !== window.top) return;
 
-    // Prevent double injection
-    if (window.__bitcointalk_early_injected) return;
-    window.__bitcointalk_early_injected = true;
+        // Prevent double injection
+        if (window.__bitcointalk_early_injected) return;
+        window.__bitcointalk_early_injected = true;
 
-    const MAX_HIDE_TIMEOUT = 3000; // ms - قابل للتعديل
-    const TEST_VAR_NAME = '--bt-inject-test';
-    const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
+        const MAX_HIDE_TIMEOUT = 3000; // ms - Adjustable
+        const TEST_VAR_NAME = '--bt-inject-test';
+        const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
 
-    // Hide document immediately to prevent FOUC
-    const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
-    try { if (document.documentElement) document.documentElement.style.visibility = 'hidden'; } catch (e) { /* ignore */ }
+        // Hide document immediately to prevent FOUC
+        const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
+        try { if (document.documentElement) document.documentElement.style.visibility = 'hidden'; } catch (e) { /* ignore */ }
 
-    let revealed = false;
-    function revealDocument() {
-      if (revealed) return;
-      revealed = true;
-      try { if (document.documentElement) document.documentElement.style.visibility = prevVisibility || ''; } catch (e) { /* ignore */ }
-    }
+        let revealed = false;
+        function revealDocument() {
+            if (revealed) return;
+            revealed = true;
+            try { if (document.documentElement) document.documentElement.style.visibility = prevVisibility || ''; } catch (e) { /* ignore */ }
+        }
 
-    // Utility: insert a <style> with cssText and test if it applied (via custom property)
-    function insertStyleAndTest(cssText) {
-      return new Promise(resolve => {
-        try {
-          const style = document.createElement('style');
-          style.setAttribute('data-bt-early', '1');
-          const testCss = `:root { ${TEST_VAR_NAME}: injected; }`;
-          style.textContent = cssText + '\n' + testCss;
-          (document.head || document.documentElement).appendChild(style);
+        // Utility: insert a <style> with cssText and test if it applied (via custom property)
+        function insertStyleAndTest(cssText) {
+            return new Promise(resolve => {
+                try {
+                    const style = document.createElement('style');
+                    style.setAttribute('data-bt-early', '1');
+                    const testCss = `:root { ${TEST_VAR_NAME}: injected; }`;
+                    style.textContent = cssText + '\n' + testCss;
+                    (document.head || document.documentElement).appendChild(style);
 
-          requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        try {
+                            const val = getComputedStyle(document.documentElement).getPropertyValue(TEST_VAR_NAME).trim();
+                            const applied = (val === 'injected');
+                            resolve({ applied, style });
+                        } catch (err) {
+                            resolve({ applied: false, style });
+                        }
+                    });
+                } catch (err) {
+                    resolve({ applied: false, style: null });
+                }
+            });
+        }
+
+        // Utility: try blob fallback (create blob URL and attach link)
+        function tryBlobLink(cssText) {
+            return new Promise(resolve => {
+                try {
+                    const blob = new Blob([cssText], { type: 'text/css' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    const linkBlob = document.createElement('link');
+                    linkBlob.rel = 'stylesheet';
+                    linkBlob.href = blobUrl;
+
+                    const cleanup = (success) => {
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                        resolve(success);
+                    };
+
+                    linkBlob.onload = function () { cleanup(true); };
+                    linkBlob.onerror = function () { cleanup(false); };
+
+                    (document.head || document.documentElement).appendChild(linkBlob);
+
+                    setTimeout(() => cleanup(false), 2000);
+                } catch (err) {
+                    resolve(false);
+                }
+            });
+        }
+
+        // Main flow with fallbacks
+        const overallTimeout = setTimeout(() => {
+            console.warn('early-inject: overall timeout, revealing document');
+            revealDocument();
+        }, MAX_HIDE_TIMEOUT);
+
+        // First attempt: try loading chrome-extension:// link (fastest)
+        const primaryLink = document.createElement('link');
+        primaryLink.rel = 'stylesheet';
+        primaryLink.href = extensionCssPath;
+
+        let handled = false;
+
+        primaryLink.onload = function () {
+            if (handled) return;
+            handled = true;
+            clearTimeout(overallTimeout);
+            console.info('early-inject: extension link loaded');
+            revealDocument();
+        };
+
+        primaryLink.onerror = async function () {
+            if (handled) return;
+            handled = true;
+            console.warn('early-inject: extension link failed — attempting inline fetch + test');
             try {
-              const val = getComputedStyle(document.documentElement).getPropertyValue(TEST_VAR_NAME).trim();
-              const applied = (val === 'injected');
-              resolve({ applied, style });
+                // fetch CSS content from extension resource
+                const resp = await fetch(extensionCssPath);
+                if (!resp.ok) throw new Error('fetch failed ' + resp.status);
+                const cssText = await resp.text();
+
+                // Try inline <style> first
+                const { applied, style } = await insertStyleAndTest(cssText);
+                if (applied) {
+                    clearTimeout(overallTimeout);
+                    console.info('early-inject: inline style applied successfully');
+                    revealDocument();
+                    return;
+                } else {
+                    try { if (style && style.parentNode) style.parentNode.removeChild(style); } catch (e) { /* ignore */ }
+                    console.warn('early-inject: inline style did not take effect (likely CSP). Trying blob fallback.');
+                }
+
+                // Try blob link fallback (may bypass chrome-extension: scheme but can still be blocked by CSP)
+                const blobSuccess = await tryBlobLink(cssText);
+                if (blobSuccess) {
+                    clearTimeout(overallTimeout);
+                    console.info('early-inject: blob stylesheet applied successfully');
+                    revealDocument();
+                    return;
+                } else {
+                    console.warn('early-inject: blob fallback failed or was blocked by CSP');
+                }
             } catch (err) {
-              resolve({ applied: false, style });
+                console.warn('early-inject: fetch/inline/blob fallback failed', err);
+            } finally {
+                clearTimeout(overallTimeout);
+                revealDocument();
             }
-          });
-        } catch (err) {
-          resolve({ applied: false, style: null });
-        }
-      });
+        };
+
+        (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(primaryLink);
+
+        document.addEventListener('DOMContentLoaded', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+        window.addEventListener('load', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
+
+    } catch (err) {
+        console.error('early-inject error', err);
+        try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
     }
-
-    // Utility: try blob fallback (create blob URL and attach link)
-    function tryBlobLink(cssText) {
-      return new Promise(resolve => {
-        try {
-          const blob = new Blob([cssText], { type: 'text/css' });
-          const blobUrl = URL.createObjectURL(blob);
-          const linkBlob = document.createElement('link');
-          linkBlob.rel = 'stylesheet';
-          linkBlob.href = blobUrl;
-
-          const cleanup = (success) => {
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-            resolve(success);
-          };
-
-          linkBlob.onload = function () { cleanup(true); };
-          linkBlob.onerror = function () { cleanup(false); };
-
-          (document.head || document.documentElement).appendChild(linkBlob);
-
-          setTimeout(() => cleanup(false), 2000);
-        } catch (err) {
-          resolve(false);
-        }
-      });
-    }
-
-    // Main flow with fallbacks
-    const overallTimeout = setTimeout(() => {
-      console.warn('early-inject: overall timeout, revealing document');
-      revealDocument();
-    }, MAX_HIDE_TIMEOUT);
-
-    // First attempt: try loading chrome-extension:// link (fastest)
-    const primaryLink = document.createElement('link');
-    primaryLink.rel = 'stylesheet';
-    primaryLink.href = extensionCssPath;
-
-    let handled = false;
-
-    primaryLink.onload = function () {
-      if (handled) return;
-      handled = true;
-      clearTimeout(overallTimeout);
-      console.info('early-inject: extension link loaded');
-      revealDocument();
-    };
-
-    primaryLink.onerror = async function () {
-      if (handled) return;
-      handled = true;
-      console.warn('early-inject: extension link failed — attempting inline fetch + test');
-      try {
-        // fetch CSS content from extension resource
-        const resp = await fetch(extensionCssPath);
-        if (!resp.ok) throw new Error('fetch failed ' + resp.status);
-        const cssText = await resp.text();
-
-        // Try inline <style> first
-        const { applied, style } = await insertStyleAndTest(cssText);
-        if (applied) {
-          clearTimeout(overallTimeout);
-          console.info('early-inject: inline style applied successfully');
-          revealDocument();
-          return;
-        } else {
-          try { if (style && style.parentNode) style.parentNode.removeChild(style); } catch (e) { /* ignore */ }
-          console.warn('early-inject: inline style did not take effect (likely CSP). Trying blob fallback.');
-        }
-
-        // Try blob link fallback (may bypass chrome-extension: scheme but can still be blocked by CSP)
-        const blobSuccess = await tryBlobLink(cssText);
-        if (blobSuccess) {
-          clearTimeout(overallTimeout);
-          console.info('early-inject: blob stylesheet applied successfully');
-          revealDocument();
-          return;
-        } else {
-          console.warn('early-inject: blob fallback failed or was blocked by CSP');
-        }
-      } catch (err) {
-        console.warn('early-inject: fetch/inline/blob fallback failed', err);
-      } finally {
-        clearTimeout(overallTimeout);
-        revealDocument();
-      }
-    };
-
-    (document.head || document.getElementsByTagName('head')[0] || document.documentElement).appendChild(primaryLink);
-
-    document.addEventListener('DOMContentLoaded', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
-    window.addEventListener('load', () => { if (!revealed) { clearTimeout(overallTimeout); revealDocument(); } }, { once: true });
-
-  } catch (err) {
-    console.error('early-inject error', err);
-    try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
-  }
 })();
 
+// background.js crypto prices getter
+// moved to content.js because of Chrome manifest v3 restrictions
+
+let prices = {
+    btc: 0,
+    eth: 0
+};
+
+let ws = null;
+
+// Function to connect to the WebSocket
+function connectWebSocket() {
+    try {
+        ws = new WebSocket("wss://push.coinmarketcap.com/ws?device=web&client_source=home_page");
+
+        ws.onopen = function () {
+            console.log("WebSocket connection established.");
+            // Subscribe to the price updates
+            const subscribeMessage = {
+                "method": "RSUBSCRIPTION",
+                "params": ["main-site@crypto_price_5s@{}@normal", "1,1027"]
+            };
+            ws.send(JSON.stringify(subscribeMessage));
+        };
+
+        // Handle incoming WebSocket messages
+        ws.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.d) {
+                    if (data.d.id === 1) { // BTC price update
+                        prices.btc = data.d.p;
+                    } else if (data.d.id === 1027) { // ETH price update
+                        prices.eth = data.d.p;
+                    }
+                }
+            } catch (err) {
+                console.error("Error parsing WebSocket message:", err);
+            }
+        };
+
+        ws.onerror = function (error) {
+            console.error("WebSocket Error:", error);
+        };
+
+        ws.onclose = function (event) {
+            console.warn("WebSocket connection closed:", event.code, event.reason);
+        };
+
+    } catch (error) {
+        console.error("Couldn't connect to CMC WebSocket:", error);
+        attemptReconnect();
+    }
+}
+
+// Reconnect WebSocket if disconnected
+function attemptReconnect() {
+    console.log("Attempting to reconnect to WebSocket...");
+    setTimeout(() => {
+        connectWebSocket();
+    }, 5000);
+}
+
+// Disconnect WebSocket
+function disconnect() {
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+}
+
+// Fetch prices (called from Bitcointalk.updatePrices)
+function fetchPrices() {
+    if (!ws) {
+        connectWebSocket();
+    }
+    return { success: true, prices: { btc: prices.btc, eth: prices.eth }, source: "coinmarketcap.com" }
+}
 /* =========================
    Existing Bitcointalk code (kept, initialization deferred until DOM ready)
    ========================= */
@@ -184,7 +264,7 @@ const Bitcointalk = {
     setStorage: function (key, value) {
         chrome.storage.local.get('bitcointalk', function (storage) {
             let newStorage = {};
-            if (typeof Object.keys(storage) !== 'undefined' && Object.keys(storage).length > 0) {
+            if (storage && typeof storage === 'object' && storage.bitcointalk) {
                 newStorage = storage.bitcointalk;
             }
             newStorage[key] = value;
@@ -193,11 +273,12 @@ const Bitcointalk = {
     },
     getAnStorage: function (key, callback) {
         chrome.storage.local.get('bitcointalk', function (storage) {
-            callback(storage.bitcointalk && storage.bitcointalk[key] !== undefined ? storage.bitcointalk[key] : {});
+            const out = storage && storage.bitcointalk && storage.bitcointalk[key] !== undefined ? storage.bitcointalk[key] : [];
+            callback(out);
         });
     },
     clearStorege: function () {
-        chrome.storage.local.clear(function (obj) {
+        chrome.storage.local.clear(function () {
             console.log("cleared");
         });
     },
@@ -215,20 +296,87 @@ const Bitcointalk = {
         }
     },
     toggleTheme: function (value) {
-        let styleOld = document.getElementsByClassName("bitcointalk-css-inject");
-        if (styleOld.length > 0) {
-            styleOld[0].remove();
-        }
-        if (value !== "on" && !isNaN(parseInt(value))) {
-            let urlCss = chrome.runtime.getURL(`css/bitcointalk/${value}.css`);
+        // Remove previously injected theme styles and any existing theme classes
+        try {
+            const prev = document.querySelectorAll('.bitcointalk-css-inject');
+            prev.forEach(el => { try { el.remove(); } catch (e) { /* ignore */ } });
+            document.querySelectorAll('link[data-extension-theme], style[data-extension-theme]').forEach(el => { try { el.remove(); } catch (e) { /* ignore */ } });
+            if (document && document.documentElement) {
+                const clsList = Array.from(document.documentElement.classList).filter(c => c.indexOf('bt-theme-') === 0);
+                clsList.forEach(c => document.documentElement.classList.remove(c));
+            }
+        } catch (e) { /* ignore if DOM not ready */ }
+
+        // if 'on' => default, do nothing further
+        if (value === 'on') return;
+
+        // apply numeric theme id (1,2,3,4)
+        if (!isNaN(parseInt(value))) {
+            const themeId = String(value);
+            const className = `bt-theme-${themeId}`;
+            const urlCss = chrome.runtime.getURL(`css/bitcointalk/${themeId}.css`);
             fetch(urlCss).then(response => response.text()).then(css => {
-                let style = document.createElement("style");
-                let head = document.querySelector("head") || document.head || document.documentElement;
-                style.className = "bitcointalk-css-inject";
-                style.innerHTML = css;
-                head.appendChild(style);
+                try {
+                    const scoped = Bitcointalk.scopeCss(css, `html.${className}`);
+                    const style = document.createElement('style');
+                    style.className = 'bitcointalk-css-inject';
+                    style.setAttribute('data-extension-theme', 'bitcointalk');
+                    style.textContent = scoped;
+                    const head = document.querySelector('head') || document.head || document.documentElement;
+                    head.appendChild(style);
+                    if (document && document.documentElement) document.documentElement.classList.add(className);
+                } catch (err) {
+                    console.warn('toggleTheme: error scoping/injecting css', err);
+                }
+            }).catch(err => {
+                console.warn('toggleTheme: failed to fetch theme css', err);
             });
         }
+    },
+
+    // Scope plain CSS text by prefixing all selectors with `scope` (e.g. "html.bt-theme-1").
+    // Handles top-level rules and @media/@supports blocks. Leaves @keyframes and similar untouched.
+    scopeCss: function (cssText, scope) {
+        let i = 0;
+        const len = cssText.length;
+        let out = '';
+
+        function skipWS() { while (i < len && /\s/.test(cssText[i])) i++; }
+
+        function readUntil(ch) { let s = i; while (i < len && cssText[i] !== ch) i++; return cssText.slice(s, i); }
+
+        function process() {
+            skipWS();
+            if (i >= len) return;
+            if (cssText[i] === '@') {
+                const atStart = i;
+                const header = readUntil('{');
+                if (i >= len) { out += cssText.slice(atStart); return; }
+                out += header + '{';
+                i++; // skip '{'
+                let depth = 1; const innerStart = i;
+                while (i < len && depth > 0) { if (cssText[i] === '{') depth++; else if (cssText[i] === '}') depth--; i++; }
+                const inner = cssText.slice(innerStart, i - 1);
+                if (/^@media|@supports|@document/.test(header.trim())) out += this.scopeCss(inner, scope);
+                else out += inner;
+                out += '}';
+            } else {
+                const selStart = i;
+                const selectors = readUntil('{');
+                if (i >= len) { out += cssText.slice(selStart); return; }
+                i++; // skip '{'
+                const bodyStart = i; let depth = 1;
+                while (i < len && depth > 0) { if (cssText[i] === '{') depth++; else if (cssText[i] === '}') depth--; i++; }
+                const body = cssText.slice(bodyStart, i - 1);
+                const pref = selectors.split(',').map(s => {
+                    const t = s.trim(); if (!t) return ''; if (/^from$|^to$|^[0-9.]+%$/.test(t)) return t; if (t.indexOf(scope) !== -1) return t; return scope + ' ' + t;
+                }).filter(Boolean).join(', ');
+                out += pref + ' {' + body + '}';
+            }
+        }
+
+        while (i < len) process.call(this);
+        return out;
     },
     toggleSignature: function (value) {
         let signature = document.getElementsByClassName("signature");
@@ -245,17 +393,13 @@ const Bitcointalk = {
         }
     },
     zoomFontSize: function (value, event) {
-        // event === 0 -> change requested from popup (click/slider)
-        // event !== 0 -> init/load from storage (page load)
         if (event === 0) {
-            // If value is numeric (from slider), set directly
             if (!isNaN(parseInt(value))) {
                 let newFontSize = parseInt(value);
                 this.setStorage('zoom', newFontSize);
                 document.body.style.zoom = newFontSize + "%";
                 if (document.documentElement) document.documentElement.style.zoom = newFontSize + "%";
             } else {
-                // fallback to original plus/minus/on behavior
                 let newFontSize = !isNaN(parseInt(document.body.style.zoom)) ? parseInt(document.body.style.zoom) : 100;
                 if (value === "plus") {
                     newFontSize += 5;
@@ -269,7 +413,6 @@ const Bitcointalk = {
                 if (document.documentElement) document.documentElement.style.zoom = newFontSize + "%";
             }
         } else {
-            // On page load: prefer using the value passed (if numeric), otherwise read from storage.
             const applyZoom = (res) => {
                 let parsed = !isNaN(parseInt(res)) ? parseInt(res) : null;
                 if (parsed === null && !isNaN(parseInt(value))) {
@@ -291,7 +434,7 @@ const Bitcointalk = {
     },
     toggleMerit: function () {
         if (window.location.href.includes("https://bitcointalk.org/index.php?topic=")) {
-            let sesc = document.querySelectorAll("td.maintab_back a[href*='index.php?action=logout;'");
+            let sesc = document.querySelectorAll("td.maintab_back a[href*='index.php?action=logout;']");
             if (sesc.length === 0) {
                 return;
             }
@@ -402,7 +545,7 @@ const Bitcointalk = {
         if (postsPinnedOld.length > 0) {
             postsPinnedOld[0].remove();
         }
-        if (typeof Object.keys(currentListPost) !== 'undefined' && Object.keys(currentListPost).length === 0) {
+        if (!currentListPost || (Array.isArray(currentListPost) && currentListPost.length === 0)) {
             return;
         }
         let minusIcon = chrome.runtime.getURL(`icons/minus.png`);
@@ -447,7 +590,9 @@ const Bitcointalk = {
                                             </tbody>
                                         </table>
                                      </div>`;
-        bodyarea.insertBefore(postsPinned, bodyarea.firstChild);
+        if (bodyarea) {
+            bodyarea.insertBefore(postsPinned, bodyarea.firstChild);
+        }
 
         let removePostPinsSpan = postsPinned.getElementsByTagName("td");
         for (let i = 0; i < removePostPinsSpan.length; i++) {
@@ -468,6 +613,7 @@ const Bitcointalk = {
     },
     removePostPins: function (url) {
         this.getAnStorage('list-post', (listPost) => {
+            listPost = Array.isArray(listPost) ? listPost : [];
             let flagExist = 0;
             for (let i = 0; i < listPost.length; i++) {
                 if (listPost[i].url === url) {
@@ -499,6 +645,7 @@ const Bitcointalk = {
         let postElement = document.querySelectorAll("td[class=windowbg][valign=middle], td[valign=middle] div[class=subject]");
 
         await this.getAnStorage('list-post', (currentListPost) => {
+            currentListPost = Array.isArray(currentListPost) ? currentListPost : [];
 
             this.displayPostPins(currentListPost);
 
@@ -514,9 +661,10 @@ const Bitcointalk = {
                     spanNode.style.cursor = "pointer";
                     spanNode.innerHTML = `<img data-url="${url}" src="${plusIcon}" height="16" width="16" alt="plus-icon"/>`;
 
-                    for (let i = 0; i < currentListPost.length; i++) {
-                        if (currentListPost[i].url === url) {
+                    for (let k = 0; k < currentListPost.length; k++) {
+                        if (currentListPost[k].url === url) {
                             spanNode.innerHTML = `<img data-url="${url}" src="${minusIcon}" height="16" width="16" alt="minus-icon"/>`;
+                            break;
                         }
                     }
                     postElement[i].appendChild(spanNode);
@@ -524,13 +672,14 @@ const Bitcointalk = {
                     spanNode.addEventListener("click", async () => {
                         let listPost = [];
                         this.getAnStorage('list-post', (res) => {
-                            listPost = res.length > 0 ? res : listPost;
+                            listPost = Array.isArray(res) && res.length > 0 ? res : listPost;
 
                             let flagExist = 0;
-                            for (let i = 0; i < listPost.length; i++) {
-                                if (listPost[i].url === url) {
+                            for (let j = 0; j < listPost.length; j++) {
+                                if (listPost[j].url === url) {
                                     flagExist = 1;
-                                    listPost.splice(i, 1);
+                                    listPost.splice(j, 1);
+                                    break;
                                 }
                             }
                             if (flagExist === 0) {
@@ -556,7 +705,8 @@ const Bitcointalk = {
         let dialogPrice = document.getElementsByClassName("dialog-price");
         divNode.style = "display: none;position: fixed;bottom: 20px;right: 30px;z-index: 99;cursor: pointer;padding: 15px;border-radius: 4px;";
         divNode.innerHTML = `<img src="${toTop}" alt="to-top" height="36"/>`;
-        document.getElementById('footerarea').appendChild(divNode);
+        const footer = document.getElementById('footerarea');
+        if (footer) footer.appendChild(divNode);
 
         window.onscroll = function () {
             if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
@@ -567,7 +717,7 @@ const Bitcointalk = {
                 if (dialogPrice.length > 0) dialogPrice[0].style.display = "none";
             }
         };
-        divNode.getElementsByTagName("img")[0].addEventListener("click", () => {
+        divNode.addEventListener("click", () => {
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
         });
@@ -593,18 +743,21 @@ const Bitcointalk = {
     },
     highlightMyNameInMerit: function () {
         [...document.querySelectorAll(".td_headerandpost")].forEach(post => {
-            let myName = document.querySelector("#hellomember b").textContent;
+            const nameNode = document.querySelector("#hellomember b");
+            if (!nameNode) return;
+            let myName = nameNode.textContent;
             let allMerits = [...post.querySelectorAll(".smalltext i > a")];
             let myMerit = allMerits.find(e => e.textContent === myName);
             if (myMerit) {
                 myMerit.style["font-weight"] = "bold";
                 if (allMerits.indexOf(myMerit) !== 0) {
                     let myScore = myMerit.nextSibling;
-                    post.querySelector(".smalltext i").removeChild(myMerit);
-                    post.querySelector(".smalltext i").removeChild(myScore);
+                    const container = post.querySelector(".smalltext i");
+                    if (!container) return;
+                    container.removeChild(myMerit);
+                    container.removeChild(myScore);
                     allMerits[0].before(myScore);
-                    if (allMerits.length > 0)
-                        myScore.after(document.createElement("div").innerHTML = ", ");
+                    myScore.after(document.createTextNode(", "));
                     myScore.before(myMerit)
                 }
             }
@@ -612,59 +765,58 @@ const Bitcointalk = {
     },
     enhancedReportToModeratorUI: function () {
         if (document.location.href.match(/https:\/\/bitcointalk.org\/index.php\?action=profile;(.*?)sa=showPosts/s)) {
-            let button = document.querySelectorAll("span[class=middletext]");
+            let buttons = document.querySelectorAll("span.middletext");
             let flagIcon = chrome.runtime.getURL(`icons/flag.png`);
 
-            [...document.querySelectorAll("td[class=middletext] a:last-of-type")].forEach((post, i) => {
+            [...document.querySelectorAll("td.middletext a:last-of-type")].forEach((post, i) => {
                 let a = document.createElement("a");
                 a.setAttribute("href", post.getAttribute("href").replace("index.php?", "index.php?action=reporttm;").replace(".msg", ";msg="));
                 a.innerHTML = `<img src="${flagIcon}" alt="Reply" align="middle"> <b>Report to moderator</b>`;
-                button[(i + 1)].prepend(a);
+                if (buttons[i + 1]) {
+                    buttons[i + 1].prepend(a);
+                }
             });
         }
     },
     displayBitcoinPrice: function (value) {
-        let header = document.querySelectorAll("td.catbg")[1];
+        let header = document.querySelectorAll("td.catbg")[1]; // Or adjust to your specific page structure
+        if (!header) return;
         if (value === "on") {
-            this.getAnStorage("storagePrice", storagePrice => {
-                let dialogPriceNode = document.createElement("div");
-                dialogPriceNode.style = "display: none;position: fixed;top: 0;right: 0;z-index: 100;padding: 10px;border-radius:50px;margin: 5px 5px 0px 0px;";
-                dialogPriceNode.setAttribute("class", "dialog-price catbg");
+            this.updatePricesInterval = setInterval(() => {
+                this.updatePrices(header);
+            }, 3000);
+        }
+        if (value === "off") {
+            clearInterval(this.updatePricesInterval);
+            header.innerHTML = `<img src="https://bitcointalk.org/Themes/custom1/images/smflogo.gif" style="margin: 2px;" alt="">`;
+            disconnect();
+        }
+    },
+    updatePrices: function (container) {
+        try {
+            let response = fetchPrices();
+            if (response.success) {
+                const btcPrice = Number(response.prices.btc || 0).toLocaleString();
+                const ethPrice = Number(response.prices.eth || 0).toLocaleString();
 
-                if (storagePrice && Object.keys(storagePrice).length > 0 && (storagePrice.timestamp + 600) > Math.floor(Date.now() / 1000)) {
-                    header.innerHTML = storagePrice.html;
-                    dialogPriceNode.innerHTML = storagePrice.html;
-                    document.getElementsByClassName('tborder')[0].appendChild(dialogPriceNode);
-                } else {
-                    this.httpGet("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd", response => {
-                        let price = JSON.parse(response);
-                        if (price.bitcoin && price.ethereum) {
-                            let html = [
-                                `$${price.bitcoin.usd.toLocaleString()}/BTC`,
-                                ` | `,
-                                `$${price.ethereum.usd.toLocaleString()}/ETH`
-                            ].join("");
-                            header.innerHTML = html;
-                            dialogPriceNode.innerHTML = html;
-                            document.getElementsByClassName('tborder')[0].appendChild(dialogPriceNode);
-                            this.setStorage('storagePrice', {
-                                'html': html,
-                                'timestamp': Math.floor(Date.now() / 1000)
-                            });
-                        } else {
-                            header.innerHTML = "Can't get the price of Bitcoin";
-                        }
-                    });
-                }
-            });
-        } else {
-            let dialogPrice = document.getElementsByClassName("dialog-price");
-            if (dialogPrice.length > 0) dialogPrice[0].remove();
+                let html = [
+                    `$${btcPrice}/BTC`,
+                    ` | `,
+                    `$${ethPrice}/ETH`
+                ].join("");
+
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = "Can't fetch prices.";
+                throw new Error(response.error || "Unknown error");
+            }
+        } catch (error) {
+            console.error('Error fetching crypto prices:', error);
+            container.textContent = '⚠️ Prices unavailable. May be blocked in your region.';
         }
     },
     // New: toggle page direction (rtl / ltr)
     toggleDirection: function (value) {
-        // value expected 'rtl' or 'ltr'
         try {
             if (value === 'rtl') {
                 if (document.documentElement) document.documentElement.setAttribute('dir', 'rtl');
@@ -673,7 +825,6 @@ const Bitcointalk = {
                 if (document.documentElement) document.documentElement.setAttribute('dir', 'ltr');
                 if (document.body) document.body.style.direction = 'ltr';
             } else {
-                // if something else, reset to default (ltr)
                 if (document.documentElement) document.documentElement.removeAttribute('dir');
                 if (document.body) document.body.style.direction = '';
             }
@@ -682,16 +833,78 @@ const Bitcointalk = {
         }
     },
 
+    // Merged utilities: isLoggedIn, addBoardNavigation, format_counters
+    isLoggedIn: function () {
+        return [...document.querySelectorAll("td.maintab_back")].length === 8;
+    },
+
+    addBoardNavigation: function () {
+        const url = window.location.href;
+        if (!url.includes("?board=")) return;
+
+        const board = url.replace(/(\.\d+)$/, "");
+
+        document.querySelectorAll("td.middletext").forEach(function (td) {
+            const bElements = td.querySelectorAll("b");
+
+            bElements.forEach((element) => {
+                if (element.innerHTML.includes("...")) {
+                    const input = document.createElement("input");
+                    input.type = "number";
+                    input.min = "1";
+                    input.placeholder = "Go";
+                    input.style.width = "30px";
+                    input.style.fontSize = "10px";
+
+                    element.innerHTML = "";
+                    element.appendChild(input);
+
+                    input.addEventListener("keydown", function (event) {
+                        if (event.key === "Enter") {
+                            const pageNum = parseInt(input.value, 10);
+
+                            if (Number.isInteger(pageNum) && pageNum > 0) {
+                                const threadCount = 40;
+                                const offset = (pageNum - 1) * threadCount;
+                                window.location.href = `${board}.${offset}`;
+                            } else {
+                                alert("Please enter a valid page number.");
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    },
+
+    format_counters: function () {
+        function format_number(number, compact) {
+            const formatter = new Intl.NumberFormat("en", {
+                notation: compact ? "compact" : "standard",
+            });
+            const n = typeof number === "number" ? number : parseInt(number, 10);
+            return formatter.format(Number.isFinite(n) ? n : 0);
+        }
+
+        document
+            .querySelectorAll('td.windowbg[valign="middle"]')
+            .forEach(function (td) {
+                if (td.innerHTML.includes("Posts") || td.innerHTML.includes("Topics")) {
+                    td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
+                        return format_number(match, false);
+                    });
+                }
+            });
+    },
+
     // Quick Quote feature integrated (updated positioning & robustness)
     initQuickQuote: function () {
         (function () {
             'use strict';
 
-            // Prevent double-injection if content script runs multiple times
             if (window.__bitcointalkCopyQuoteInjected) return;
             window.__bitcointalkCopyQuoteInjected = true;
 
-            // Inject minimal CSS to style the button
             const style = document.createElement('style');
             style.textContent = `
                 .__cq-btn {
@@ -741,7 +954,6 @@ const Bitcointalk = {
 
             function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-            // Calculate and set the button position relative to the selection
             function updateButtonPositionForSelection(selection) {
                 if (!selection || selection.isCollapsed) { hideButton(); return; }
                 let range;
@@ -761,7 +973,6 @@ const Bitcointalk = {
                 let left = rect.left + scrollX;
                 let top = rect.bottom + scrollY + gap;
 
-                // Temporarily ensure button is displayed to measure it
                 const prevDisplay = btn.style.display;
                 btn.style.left = '0px';
                 btn.style.top = '0px';
@@ -772,15 +983,12 @@ const Bitcointalk = {
                 const vw = document.documentElement.clientWidth;
                 const vh = document.documentElement.clientHeight;
 
-                // Clamp horizontally within viewport (with small margin)
                 left = clamp(left, scrollX + 8, scrollX + vw - btnBox.width - 8);
 
-                // If not enough space below, place above selection
                 if (top + btnBox.height > scrollY + vh - 8) {
                     top = rect.top + scrollY - btnBox.height - gap;
                 }
 
-                // Ensure button stays within document bounds
                 top = Math.max(scrollY + 8, Math.min(top, scrollY + document.documentElement.scrollHeight - btnBox.height - 8));
 
                 btn.style.left = `${Math.round(left)}px`;
@@ -789,7 +997,6 @@ const Bitcointalk = {
                 showButton();
             }
 
-            // Clipboard helpers with fallback
             function fallbackCopyTextToClipboard(text) {
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
@@ -829,7 +1036,6 @@ const Bitcointalk = {
                 return fallbackCopyTextToClipboard(text);
             }
 
-            // Build a safe text fragment for URL fragment (approximation)
             function safeEncode(str) {
                 return encodeURIComponent(str).replace(/'/g, '%27');
             }
@@ -853,10 +1059,9 @@ const Bitcointalk = {
                 return `${month} ${day}, ${year}`;
             }
 
-            // Process selected text into BBCode quote and copy
             function processQuote(postDiv, selectedText) {
                 try {
-                    let contentTd = postDiv.closest('td.td_headerandpost') || postDiv.querySelector('td.td_headerandpost') || (postDiv.classList.contains('td_headerandpost') ? postDiv : null);
+                    let contentTd = postDiv.closest('td.td_headerandpost') || postDiv.querySelector('td.td_headerandpost') || (postDiv.classList && postDiv.classList.contains('td_headerandpost') ? postDiv : null);
                     if (!contentTd) {
                         contentTd = postDiv.closest('td');
                     }
@@ -938,8 +1143,7 @@ const Bitcointalk = {
                 }
             }
 
-            // Show button on selection (mouseup) if selection inside a post
-            document.addEventListener('mouseup', function (e) {
+            document.addEventListener('mouseup', function () {
                 const selection = window.getSelection();
                 const selectedText = selection.toString().trim();
 
@@ -974,10 +1178,8 @@ const Bitcointalk = {
                 };
             });
 
-            // Hide when clicking elsewhere (but allow clicking the button)
             document.addEventListener('mousedown', function (e) {
                 if (e.target !== btn && !btn.contains(e.target)) {
-                    // slight delay to allow click on button to register
                     setTimeout(() => {
                         const sel = document.getSelection();
                         if (!sel || sel.isCollapsed) hideButton();
@@ -985,7 +1187,6 @@ const Bitcointalk = {
                 }
             });
 
-            // Update position while selection changes, on scroll and resize
             const debouncedUpdate = debounce(() => {
                 const sel = document.getSelection();
                 if (sel && !sel.isCollapsed && btn.style.display !== 'none') {
@@ -996,7 +1197,6 @@ const Bitcointalk = {
             window.addEventListener('scroll', debouncedUpdate, true);
             window.addEventListener('resize', debouncedUpdate);
 
-            // Hide initially
             hideButton();
 
         })();
@@ -1008,13 +1208,31 @@ const Bitcointalk = {
 // Listener from popup.js
 chrome.runtime.onMessage.addListener(
     function (message) {
-        // Support handling toggles from popup for future extension
         if (message && message.type === 'emoji-toolbar-toggle') {
             // emoji toolbar is handled by emoji-toolbar.js
         } else if (message && message.type === 'emoticon-replacer-toggle') {
             // emoticon replacer handled if included separately
+        } else if (message && message.type === 'extension-reset-theme') {
+            // remove any injected theme styles and classes
+            try {
+                document.querySelectorAll('.bitcointalk-css-inject').forEach(el => { try { el.remove(); } catch (e) { /* ignore */ } });
+                document.querySelectorAll('link[data-extension-theme], style[data-extension-theme]').forEach(el => { try { el.remove(); } catch (e) { /* ignore */ } });
+                if (document && document.documentElement) {
+                    const clsList = Array.from(document.documentElement.classList).filter(c => c.indexOf('bt-theme-') === 0);
+                    clsList.forEach(c => document.documentElement.classList.remove(c));
+                }
+            } catch (e) { /* ignore */ }
         } else if (message && message.key) {
             Bitcointalk.init(message.key, message.value, 0);
+        } else if (message && message.type === 'extension-apply-custom') {
+            try {
+                if (message.css) {
+                    applyCustomCss(message.css);
+                } else {
+                    // fallback: read stored customCss
+                    chrome.storage.local.get('customCss', (d) => { if (d && d.customCss) applyCustomCss(d.customCss); });
+                }
+            } catch (e) { /* ignore */ }
         }
     }
 );
@@ -1022,16 +1240,22 @@ chrome.runtime.onMessage.addListener(
 // Defer DOM-dependent initialization until DOM is ready
 (function runWhenReady() {
     function doInit() {
-        chrome.storage.local.get('bitcointalk', function (storage) {
+        // Fetch bitcointalk settings plus any stored default/custom theme so
+        // we can prefer default/custom over a numeric bitcointalk.theme value.
+        chrome.storage.local.get(['bitcointalk', 'defaultTheme', 'customCss', 'themes'], function (storage) {
             try {
                 Bitcointalk.externalLink();
                 Bitcointalk.scrollToTop();
                 Bitcointalk.sumMerit();
-                Bitcointalk.highlightMyNameInMerit();
                 Bitcointalk.enhancedReportToModeratorUI();
                 Bitcointalk.toggleMerit();
+                Bitcointalk.addBoardNavigation();
+                Bitcointalk.format_counters();
 
-                // initialize Quick Quote
+                if (Bitcointalk.isLoggedIn()) {
+                    Bitcointalk.highlightMyNameInMerit();
+                }
+
                 try {
                     if (typeof Bitcointalk.initQuickQuote === 'function') {
                         Bitcointalk.initQuickQuote();
@@ -1040,9 +1264,15 @@ chrome.runtime.onMessage.addListener(
                     console.error('initQuickQuote error', e);
                 }
 
-                if (typeof Object.keys(storage) !== 'undefined' && Object.keys(storage).length > 0) {
-                    Object.keys(storage.bitcointalk).map(function (key) {
-                        Bitcointalk.init(key, storage.bitcointalk[key], 1);
+                const bt = storage && storage.bitcointalk ? storage.bitcointalk : {};
+                const hasDefaultOrCustom = !!(storage && (storage.defaultTheme || storage.customCss));
+                if (bt && Object.keys(bt).length > 0) {
+                    Object.keys(bt).forEach(function (key) {
+                        // If a default theme or customCss exists, do not apply the numeric
+                        // `bitcointalk.theme` value since that would override the user's
+                        // chosen default/custom theme immediately after applying it.
+                        if (key === 'theme' && hasDefaultOrCustom) return;
+                        Bitcointalk.init(key, bt[key], 1);
                     });
                 }
             } catch (e) {
@@ -1054,7 +1284,54 @@ chrome.runtime.onMessage.addListener(
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', doInit, { once: true });
     } else {
-        // DOM already ready
         doInit();
     }
 })();
+// Apply custom CSS if available + live update when changed
+function applyCustomCss(cssCode) {
+    // remove any previous custom theme class/styles
+    try {
+        document.querySelectorAll('style.bitcointalk-custom-theme, style[data-extension-theme="bitcointalk-custom"]').forEach(el => { try { el.remove(); } catch (e) { } });
+        if (document && document.documentElement) document.documentElement.classList.remove('bt-custom');
+    } catch (e) { /* ignore */ }
+
+    if (!cssCode) return;
+
+    // scope custom CSS under html.bt-custom to avoid leaking to other themes
+    try {
+        const scope = 'html.bt-custom';
+        const scopedCss = (typeof Bitcointalk !== 'undefined' && typeof Bitcointalk.scopeCss === 'function') ? Bitcointalk.scopeCss(cssCode, scope) : cssCode;
+        const styleEl = document.createElement('style');
+        styleEl.className = 'bitcointalk-custom-theme';
+        styleEl.setAttribute('data-extension-theme', 'bitcointalk-custom');
+        styleEl.textContent = scopedCss;
+        (document.head || document.documentElement).appendChild(styleEl);
+        if (document && document.documentElement) document.documentElement.classList.add('bt-custom');
+    } catch (e) {
+        // fallback: inject raw css (less safe)
+        try {
+            const styleEl = document.createElement('style');
+            styleEl.className = 'bitcointalk-custom-theme';
+            styleEl.setAttribute('data-extension-theme', 'bitcointalk-custom');
+            styleEl.textContent = cssCode;
+            (document.head || document.documentElement).appendChild(styleEl);
+        } catch (e2) { /* ignore */ }
+    }
+}
+
+// Load default theme or last applied CSS
+chrome.storage.local.get(['customCss', 'defaultTheme', 'themes'], (data) => {
+  if (data.defaultTheme && data.themes && data.themes[data.defaultTheme]) {
+    applyCustomCss(data.themes[data.defaultTheme]);
+    chrome.storage.local.set({ customCss: data.themes[data.defaultTheme] });
+  } else if (data.customCss) {
+    applyCustomCss(data.customCss);
+  }
+});
+
+// Listen for changes from popup
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.customCss) {
+    applyCustomCss(changes.customCss.newValue);
+  }
+});

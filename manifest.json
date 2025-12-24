@@ -1,7 +1,7 @@
 {
   "name": "Bitcointalk Script",
   "short_name": "Bitcointalk-Script",
-  "version": "3.8",
+  "version": "4.0",
   "manifest_version": 3,
   "description": "Extension for Bitcointalk — themes, zoom, direction, emoji toolbar and more",
   "icons": {
@@ -61,6 +61,7 @@
       "resources": [
         "css/bitcointalk/*.css",
         "icons/*.png",
+        "images/bitcoin.png",
         "images/emojis/*",
         "css/popup.css"
       ],

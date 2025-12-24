@@ -40,7 +40,6 @@ h1 {
 .btn-group button {
     border: 1px solid #777;
     cursor: pointer;
-    float: left;
     color: black;
     padding: 7px 16px;
     text-decoration: none;
@@ -57,9 +56,11 @@ h1 {
     border-right: 0;
 }
 
-.btn-group button:hover, .btn-group button:active {
+.btn-group button:hover,
+.btn-group button:active {
     background-color: #ddd;
 }
+
 .btn-group button span {
     font-size: 10pt;
 }
@@ -77,25 +78,33 @@ h1 {
     border-radius: 50%;
     border: 1px solid #ddd;
 }
+
 .circle-on {
-    background: #009900!important;
+    background: #009900 !important;
 }
+
 .circle-on span {
     font-weight: bold;
 }
+
 .circle-off {
-    background: #ff6666!important;
+    background: #ff6666 !important;
 }
+
 .circle-off span {
     font-weight: bold;
 }
+
 .red {
     color: red;
 }
+
 .hidden {
     display: none;
 }
-a, a:hover {
+
+a,
+a:hover {
     color: #000;
 }
 
@@ -113,4 +122,3 @@ a {
     width: 100%;
     cursor: pointer;
 }
-

@@ -30,3 +30,18 @@ This extension summarizes the features that members prefer, making it easier for
 The post on Bitcointalk: https://bitcointalk.org/index.php?topic=5178297
 
 Author: mrvuit / https://bitcointalk.org/index.php?action=profile;u=1437909
+
+## 📝 Change Log
+
+| Feature / Section            | Change / Update                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------|
+| **Themes Manager**            | Added full manager: Save, Apply, Delete, Set Default, Export, Import            |
+| **Clean Button**              | Introduced 🧹 Clean button to clear CSS code editor                             |
+| **Modal Confirmations**       | Replaced default alerts/confirm with custom modal dialogs for consistent UI/UX  |
+| **Emoji Toolbar**             | Expanded catalog, selectable emojis, persistent storage                        |
+| **Zoom Slider**               | Added slider with live percentage display and styled background                |
+| **Button Styling**            | Reduced size, improved hover/active states, theme-consistent design            |
+| **Tooltips**                  | Added English tooltips for all buttons (Save, Apply, Delete, Export, Import…)  |
+| **Spacing Adjustments**       | Reduced spacing between input field and textarea for better layout             |
+| **Textarea Direction**        | Set CSS editor textarea to LTR for easier code reading                         |
+| **Themes Dropdown**           | Added placeholder option and side label “Choose Theme to Apply”                |
