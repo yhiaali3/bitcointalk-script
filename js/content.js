@@ -11,7 +11,6 @@
         // Prevent double injection
         if (window.__bitcointalk_early_injected) return;
         window.__bitcointalk_early_injected = true;
-
         const MAX_HIDE_TIMEOUT = 3000; // ms - Adjustable
         const TEST_VAR_NAME = '--bt-inject-test';
         const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
@@ -230,6 +229,7 @@ function fetchPrices() {
     }
     return { success: true, prices: { btc: prices.btc, eth: prices.eth }, source: "coinmarketcap.com" }
 }
+
 /* =========================
    Existing Bitcointalk code (kept, initialization deferred until DOM ready)
    ========================= */
@@ -779,42 +779,43 @@ const Bitcointalk = {
         }
     },
     displayBitcoinPrice: function (value) {
-        let header = document.querySelectorAll("td.catbg")[1]; // Or adjust to your specific page structure
-        if (!header) return;
-        if (value === "on") {
-            this.updatePricesInterval = setInterval(() => {
-                this.updatePrices(header);
-            }, 3000);
-        }
-        if (value === "off") {
-            clearInterval(this.updatePricesInterval);
-            header.innerHTML = `<img src="https://bitcointalk.org/Themes/custom1/images/smflogo.gif" style="margin: 2px;" alt="">`;
-            disconnect();
+        try {
+            const header = document.querySelectorAll("td.catbg")[1]; // Or adjust to your specific page structure
+            if (!header) return;
+
+            if (value === "on") {
+                this.updatePricesInterval = setInterval(() => {
+                    this.updatePrices(header);
+                }, 3000);
+            } else if (value === "off") {
+                clearInterval(this.updatePricesInterval);
+                if (header) header.innerHTML = `<img src="https://bitcointalk.org/Themes/custom1/images/smflogo.gif" style="margin: 2px;" alt="">`;
+                disconnect();
+            }
+        } catch (e) {
+            console.error('displayBitcoinPrice error', e);
         }
     },
+
     updatePrices: function (container) {
         try {
-            let response = fetchPrices();
-            if (response.success) {
+            const response = fetchPrices();
+            if (response && response.success) {
                 const btcPrice = Number(response.prices.btc || 0).toLocaleString();
                 const ethPrice = Number(response.prices.eth || 0).toLocaleString();
 
-                let html = [
-                    `$${btcPrice}/BTC`,
-                    ` | `,
-                    `$${ethPrice}/ETH`
-                ].join("");
-
+                const html = [`$${btcPrice}/BTC`, ` | `, `$${ethPrice}/ETH`].join('');
                 container.innerHTML = html;
             } else {
                 container.innerHTML = "Can't fetch prices.";
-                throw new Error(response.error || "Unknown error");
+                throw new Error(response && response.error ? response.error : 'Unknown error');
             }
         } catch (error) {
             console.error('Error fetching crypto prices:', error);
-            container.textContent = '⚠️ Prices unavailable. May be blocked in your region.';
+            if (container) container.textContent = '⚠️ Prices unavailable. May be blocked in your region.';
         }
     },
+
     // New: toggle page direction (rtl / ltr)
     toggleDirection: function (value) {
         try {
@@ -833,70 +834,68 @@ const Bitcointalk = {
         }
     },
 
-    // Merged utilities: isLoggedIn, addBoardNavigation, format_counters
+    // Utility methods: isLoggedIn, addBoardNavigation, format_counters
     isLoggedIn: function () {
-        return [...document.querySelectorAll("td.maintab_back")].length === 8;
+        return document.querySelectorAll("td.maintab_back").length >= 1;
     },
 
     addBoardNavigation: function () {
-        const url = window.location.href;
-        if (!url.includes("?board=")) return;
+        try {
+            const url = window.location.href;
+            if (!url.includes("?board=")) return;
+            const board = url.replace(/(\.\d+)$/, '');
 
-        const board = url.replace(/(\.\d+)$/, "");
+            document.querySelectorAll('td.middletext').forEach(function (td) {
+                const bElements = td.querySelectorAll('b');
+                bElements.forEach((element) => {
+                    if (element.innerHTML && element.innerHTML.includes("...")) {
+                        const input = document.createElement('input');
+                        input.type = 'number';
+                        input.min = 1;
+                        input.placeholder = 'Go';
+                        input.style.width = '40px';
+                        input.style.fontSize = '11px';
 
-        document.querySelectorAll("td.middletext").forEach(function (td) {
-            const bElements = td.querySelectorAll("b");
+                        element.innerHTML = '';
+                        element.appendChild(input);
 
-            bElements.forEach((element) => {
-                if (element.innerHTML.includes("...")) {
-                    const input = document.createElement("input");
-                    input.type = "number";
-                    input.min = "1";
-                    input.placeholder = "Go";
-                    input.style.width = "30px";
-                    input.style.fontSize = "10px";
-
-                    element.innerHTML = "";
-                    element.appendChild(input);
-
-                    input.addEventListener("keydown", function (event) {
-                        if (event.key === "Enter") {
-                            const pageNum = parseInt(input.value, 10);
-
-                            if (Number.isInteger(pageNum) && pageNum > 0) {
-                                const threadCount = 40;
-                                const offset = (pageNum - 1) * threadCount;
-                                window.location.href = `${board}.${offset}`;
-                            } else {
-                                alert("Please enter a valid page number.");
+                        input.addEventListener('keydown', function (event) {
+                            if (event.key === 'Enter') {
+                                const pageNum = parseInt(input.value, 10);
+                                if (Number.isInteger(pageNum) && pageNum > 0) {
+                                    const threadCount = 40;
+                                    const offset = (pageNum - 1) * threadCount;
+                                    window.location.href = `${board}.${offset}`;
+                                } else {
+                                    alert('Please enter a valid page number.');
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             });
-        });
+        } catch (e) {
+            console.error('addBoardNavigation error', e);
+        }
     },
 
     format_counters: function () {
-        function format_number(number, compact) {
-            const formatter = new Intl.NumberFormat("en", {
-                notation: compact ? "compact" : "standard",
-            });
-            const n = typeof number === "number" ? number : parseInt(number, 10);
-            return formatter.format(Number.isFinite(n) ? n : 0);
-        }
+        try {
+            function format_number(number) {
+                const n = typeof number === 'number' ? number : parseInt(number, 10);
+                if (!Number.isFinite(n)) return number;
+                return new Intl.NumberFormat('en').format(n);
+            }
 
-        document
-            .querySelectorAll('td.windowbg[valign="middle"]')
-            .forEach(function (td) {
-                if (td.innerHTML.includes("Posts") || td.innerHTML.includes("Topics")) {
-                    td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => {
-                        return format_number(match, false);
-                    });
+            document.querySelectorAll('td.windowbg[valign="middle"]').forEach(function (td) {
+                if (td.innerHTML && (td.innerHTML.includes('Posts') || td.innerHTML.includes('Topics'))) {
+                    td.innerHTML = td.innerHTML.replace(/\d+/g, (match) => format_number(match));
                 }
             });
+        } catch (e) {
+            console.error('format_counters error', e);
+        }
     },
-
     // Quick Quote feature integrated (updated positioning & robustness)
     initQuickQuote: function () {
         (function () {
