@@ -13,7 +13,7 @@
         window.__bitcointalk_early_injected = true;
         const MAX_HIDE_TIMEOUT = 3000; // ms - Adjustable
         const TEST_VAR_NAME = '--bt-inject-test';
-        const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/custom.css');
+        const extensionCssPath = chrome.runtime.getURL('css/bitcointalk/default.css');
 
         // Hide document immediately to prevent FOUC
         const prevVisibility = (document.documentElement && document.documentElement.style) ? document.documentElement.style.visibility : '';
@@ -147,6 +147,110 @@
     } catch (err) {
         console.error('early-inject error', err);
         try { if (document && document.documentElement) document.documentElement.style.visibility = ''; } catch (e) { /* ignore */ }
+    }
+})();
+
+// Add enable/disable buttons for Quill above original textarea and persist state
+(function quillToggleUI() {
+    function createButtons() {
+        try {
+            const textarea = document.querySelector('textarea[name="message"]');
+            if (!textarea) return;
+            if (document.getElementById('bt-quill-toggle')) return; // already created
+
+            const container = document.createElement('div');
+            container.id = 'bt-quill-toggle';
+            container.style.display = 'flex';
+            container.style.gap = '8px';
+            container.style.alignItems = 'center';
+            container.style.marginBottom = '6px';
+
+            const btnEnable = document.createElement('button');
+            btnEnable.id = 'bt-quill-enable';
+            btnEnable.textContent = 'Enable Editor';
+            btnEnable.style.cursor = 'pointer';
+
+            const btnDisable = document.createElement('button');
+            btnDisable.id = 'bt-quill-disable';
+            btnDisable.textContent = 'Disable Editor';
+            btnDisable.style.cursor = 'pointer';
+
+            container.appendChild(btnEnable);
+            container.appendChild(btnDisable);
+
+            textarea.parentNode.insertBefore(container, textarea);
+
+            function updateButtons(state) {
+                try {
+                    if (state) {
+                        btnEnable.disabled = true;
+                        btnDisable.disabled = false;
+                    } else {
+                        btnEnable.disabled = false;
+                        btnDisable.disabled = true;
+                    }
+                } catch (e) { }
+            }
+
+            btnEnable.addEventListener('click', function (event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                try {
+                    // set without callback to avoid running code inside storage callback (context may be invalidated)
+                    chrome.storage.local.set({ quillEnabled: true });
+                } catch (e) {
+                    // ignore storage errors
+                }
+                // call init immediately (with retries) so UI responds even if storage callback won't run
+                (function callInit(retries) {
+                    try {
+                        if (window.initQuillEditor) return void window.initQuillEditor();
+                    } catch (e) {}
+                    if (retries > 0) setTimeout(function () { callInit(retries - 1); }, 200);
+                })(10);
+                updateButtons(true);
+            });
+
+            btnDisable.addEventListener('click', function (event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                try {
+                    chrome.storage.local.set({ quillEnabled: false });
+                } catch (e) { }
+                try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
+                updateButtons(false);
+            });
+
+            // initialize state from storage
+            chrome.storage.local.get('quillEnabled', function (res) {
+                const enabled = !!(res && res.quillEnabled);
+                updateButtons(enabled);
+                if (enabled) {
+                    // If quill assets are not yet injected, retry until available
+                    (function callInit(retries) {
+                        try {
+                            if (window.initQuillEditor) return void window.initQuillEditor();
+                        } catch (e) {}
+                        if (retries > 0) setTimeout(function () { callInit(retries - 1); }, 200);
+                    })(10);
+                } else {
+                    try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
+                }
+            });
+        } catch (err) {
+            console.warn('quillToggleUI error', err);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createButtons, { once: true });
+    } else {
+        // small timeout to allow other scripts to run first
+        setTimeout(createButtons, 50);
     }
 })();
 
@@ -310,12 +414,46 @@ const Bitcointalk = {
         // if 'on' => default, do nothing further
         if (value === 'on') return;
 
-        // apply numeric theme id (1,2,3,4)
+        // colorblind-safe theme support
+        if (value === 'colorblind-safe') {
+            const className = 'bt-theme-colorblind-safe';
+            const fileName = 'colorblind-safe.css';
+            const urlCss = chrome.runtime.getURL(`css/bitcointalk/${fileName}`);
+            console.info('toggleTheme: loading colorblind-safe theme', { fileName, urlCss });
+            fetch(urlCss).then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status + ' ' + response.statusText);
+                return response.text();
+            }).then(css => {
+                try {
+                    const scoped = Bitcointalk.scopeCss(css, `html.${className}`);
+                    const style = document.createElement('style');
+                    style.className = 'bitcointalk-css-inject';
+                    style.setAttribute('data-extension-theme', 'bitcointalk');
+                    style.textContent = scoped;
+                    const head = document.querySelector('head') || document.head || document.documentElement;
+                    head.appendChild(style);
+                    if (document && document.documentElement) document.documentElement.classList.add(className);
+                } catch (err) {
+                    console.warn('toggleTheme: error scoping/injecting colorblind-safe css', err);
+                }
+            }).catch(err => {
+                console.warn('toggleTheme: failed to fetch colorblind-safe css', err);
+            });
+            return;
+        }
+
+        // apply numeric theme id (1,2,3,4) — map to filenames matching popup labels
         if (!isNaN(parseInt(value))) {
             const themeId = String(value);
             const className = `bt-theme-${themeId}`;
-            const urlCss = chrome.runtime.getURL(`css/bitcointalk/${themeId}.css`);
-            fetch(urlCss).then(response => response.text()).then(css => {
+            const themeMap = { '1': 'dark1.css', '2': 'dark2.css', '3': 'dark3.css', '4': 'bitcoin.css' };
+            const fileName = themeMap[themeId] || `${themeId}.css`;
+            const urlCss = chrome.runtime.getURL(`css/bitcointalk/${fileName}`);
+            console.info('toggleTheme: loading theme', { themeId, fileName, urlCss });
+            fetch(urlCss).then(response => {
+                if (!response.ok) throw new Error('HTTP ' + response.status + ' ' + response.statusText);
+                return response.text();
+            }).then(css => {
                 try {
                     const scoped = Bitcointalk.scopeCss(css, `html.${className}`);
                     const style = document.createElement('style');
@@ -896,154 +1034,106 @@ const Bitcointalk = {
             console.error('format_counters error', e);
         }
     },
-    // Quick Quote feature integrated (updated positioning & robustness)
+    // Quick Quote: replaced with updated implementation from attachment
     initQuickQuote: function () {
         (function () {
             'use strict';
 
-            if (window.__bitcointalkCopyQuoteInjected) return;
-            window.__bitcointalkCopyQuoteInjected = true;
-
-            const style = document.createElement('style');
-            style.textContent = `
-                .__cq-btn {
-                    position: absolute;
-                    display: none;
-                    z-index: 2147483647;
-                    background: #e7eaef;
-                    color: #000;
-                    border: 1px solid rgba(0,0,0,0.1);
-                    padding: 6px 10px;
-                    border-radius: 4px;
-                    box-shadow: 2px 2px 6px rgba(0,0,0,0.12);
-                    cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 700;
-                    user-select: none;
-                    -webkit-user-select: none;
-                    transition: transform .12s ease, opacity .12s ease;
-                }
-                .__cq-btn.__cq-hidden { opacity: 0; transform: scale(0.98); pointer-events: none; }
-            `;
-            document.head.appendChild(style);
+            if (window.__bt_quick_quote_injected) return;
+            window.__bt_quick_quote_injected = true;
 
             const btn = document.createElement('button');
-            btn.className = '__cq-btn __cq-hidden';
-            btn.type = 'button';
-            btn.setAttribute('aria-hidden', 'true');
             btn.textContent = '❝ Copy Quote';
+            btn.style.position = 'fixed';
+            btn.style.display = 'none';
+            btn.style.zIndex = '9999';
+            btn.style.padding = '5px 10px';
+            btn.style.backgroundColor = '#e7eaef';
+            btn.style.border = '1px solid #000';
+            btn.style.borderRadius = '3px';
+            btn.style.cursor = 'pointer';
+            btn.style.fontSize = '11px';
+            btn.style.fontWeight = 'bold';
+            btn.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.2)';
             document.body.appendChild(btn);
 
-            function debounce(fn, wait = 30) {
-                let t;
-                return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); };
-            }
+            function hideButton() { btn.style.display = 'none'; }
 
-            function hideButton() {
-                btn.style.display = 'none';
-                btn.classList.add('__cq-hidden');
-                btn.setAttribute('aria-hidden', 'true');
-            }
-
-            function showButton() {
-                btn.style.display = 'block';
-                btn.classList.remove('__cq-hidden');
-                btn.setAttribute('aria-hidden', 'false');
-            }
-
-            function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
-
-            function updateButtonPositionForSelection(selection) {
-                if (!selection || selection.isCollapsed) { hideButton(); return; }
-                let range;
-                try {
-                    range = selection.getRangeAt(0);
-                } catch (e) {
-                    hideButton(); return;
-                }
-
+            function showButtonNearRange(range) {
+                if (!range) return hideButton();
                 const rects = range.getClientRects();
-                let rect = (rects && rects.length) ? rects[rects.length - 1] : range.getBoundingClientRect();
-                if (!rect || (rect.width === 0 && rect.height === 0)) { hideButton(); return; }
+                const r = rects && rects.length ? rects[0] : range.getBoundingClientRect();
+                if (!r || (r.width === 0 && r.height === 0)) return hideButton();
 
-                const scrollX = window.scrollX || window.pageXOffset || 0;
-                const scrollY = window.scrollY || window.pageYOffset || 0;
-                const gap = 8;
-                let left = rect.left + scrollX;
-                let top = rect.bottom + scrollY + gap;
-
-                const prevDisplay = btn.style.display;
-                btn.style.left = '0px';
-                btn.style.top = '0px';
+                // Make it visible first so we can measure its size
                 btn.style.display = 'block';
-                const btnBox = btn.getBoundingClientRect();
-                btn.style.display = prevDisplay || (btn.classList.contains('__cq-hidden') ? 'none' : 'block');
+                btn.style.visibility = 'hidden';
 
-                const vw = document.documentElement.clientWidth;
-                const vh = document.documentElement.clientHeight;
+                // position relative to viewport (fixed)
+                let top = Math.round(r.bottom + 5);
+                let left = Math.round(r.left);
 
-                left = clamp(left, scrollX + 8, scrollX + vw - btnBox.width - 8);
+                // measure button and clamp within viewport
+                const btnRect = btn.getBoundingClientRect();
+                const btnH = btnRect.height || 28;
+                const btnW = btnRect.width || 120;
 
-                if (top + btnBox.height > scrollY + vh - 8) {
-                    top = rect.top + scrollY - btnBox.height - gap;
+                if (top + btnH > window.innerHeight - 5) {
+                    top = Math.round(r.top - btnH - 5);
                 }
+                if (left + btnW > window.innerWidth - 5) {
+                    left = Math.max(5, window.innerWidth - btnW - 5);
+                }
+                if (left < 5) left = 5;
+                if (top < 5) top = 5;
 
-                top = Math.max(scrollY + 8, Math.min(top, scrollY + document.documentElement.scrollHeight - btnBox.height - 8));
-
-                btn.style.left = `${Math.round(left)}px`;
-                btn.style.top = `${Math.round(top)}px`;
-
-                showButton();
+                btn.style.top = `${top}px`;
+                btn.style.left = `${left}px`;
+                btn.style.visibility = 'visible';
             }
 
-            function fallbackCopyTextToClipboard(text) {
-                const textArea = document.createElement("textarea");
-                textArea.value = text;
-                textArea.style.position = "fixed";
-                textArea.style.top = 0;
-                textArea.style.left = 0;
-                textArea.style.width = "2em";
-                textArea.style.height = "2em";
-                textArea.style.padding = 0;
-                textArea.style.border = "none";
-                textArea.style.outline = "none";
-                textArea.style.boxShadow = "none";
-                textArea.style.background = "transparent";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-
+            // show button on mouseup (mouse selection) and on selectionchange (keyboard selection)
+            document.addEventListener('mouseup', function () {
+                const selection = window.getSelection();
+                const selectedText = selection.toString().trim();
+                if (selectedText.length < 1) { hideButton(); return; }
+                let node = selection.anchorNode;
+                if (node && node.nodeType === 3) node = node.parentNode;
+                if (!node) { hideButton(); return; }
+                const postDiv = node.closest('div.post');
+                if (!postDiv) { hideButton(); return; }
                 try {
-                    const successful = document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    return successful;
-                } catch (err) {
-                    document.body.removeChild(textArea);
-                    return false;
-                }
-            }
+                    const range = selection.getRangeAt(0);
+                    showButtonNearRange(range);
+                    btn.onclick = function () { processQuote(postDiv, selectedText); };
+                } catch (e) { hideButton(); }
+            });
 
-            async function copyToClipboard(text) {
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    try {
-                        await navigator.clipboard.writeText(text);
-                        return true;
-                    } catch (e) {
-                        // fallback below
-                    }
-                }
-                return fallbackCopyTextToClipboard(text);
-            }
+            document.addEventListener('selectionchange', function () {
+                try {
+                    const selection = window.getSelection();
+                    if (!selection || selection.isCollapsed) { hideButton(); return; }
+                    const selectedText = selection.toString().trim();
+                    if (selectedText.length < 1) { hideButton(); return; }
+                    let node = selection.anchorNode;
+                    if (node && node.nodeType === 3) node = node.parentNode;
+                    if (!node) { hideButton(); return; }
+                    const postDiv = node.closest('div.post');
+                    if (!postDiv) { hideButton(); return; }
+                    const range = selection.getRangeAt(0);
+                    showButtonNearRange(range);
+                    btn.onclick = function () { processQuote(postDiv, selectedText); };
+                } catch (e) { /* ignore */ }
+            });
 
-            function safeEncode(str) {
-                return encodeURIComponent(str).replace(/'/g, '%27');
-            }
+            document.addEventListener('mousedown', function (e) { if (!btn.contains(e.target)) hideButton(); });
+
+            function safeEncode(str) { return encodeURIComponent(str).replace(/'/g, '%27'); }
+
             function generateTextFragment(text) {
-                const cleanText = text.replace(/\s+/g, ' ').trim();
-                const words = cleanText.split(' ').filter(Boolean);
-                if (words.length <= 8) {
-                    return safeEncode(cleanText);
-                }
+                const cleanText = text.replace(/\s+/g, ' ');
+                const words = cleanText.split(' ');
+                if (words.length <= 8) return safeEncode(cleanText);
                 const textStart = words.slice(0, 4).join(' ');
                 const textEnd = words.slice(-4).join(' ');
                 return `${safeEncode(textStart)},${safeEncode(textEnd)}`;
@@ -1051,152 +1141,77 @@ const Bitcointalk = {
 
             function getFormattedDateString() {
                 const date = new Date();
-                const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                const month = months[date.getMonth()];
-                const day = date.getDate();
-                const year = date.getFullYear();
-                return `${month} ${day}, ${year}`;
+                const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+            }
+
+            function fallbackCopy(text) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed'; ta.style.left = '-9999px';
+                document.body.appendChild(ta); ta.select();
+                try { return document.execCommand('copy'); } catch (e) { return false; } finally { try { ta.remove(); } catch (e) {} }
+            }
+
+            async function writeClipboard(text) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+                }
+                return fallbackCopy(text);
             }
 
             function processQuote(postDiv, selectedText) {
                 try {
-                    let contentTd = postDiv.closest('td.td_headerandpost') || postDiv.querySelector('td.td_headerandpost') || (postDiv.classList && postDiv.classList.contains('td_headerandpost') ? postDiv : null);
-                    if (!contentTd) {
-                        contentTd = postDiv.closest('td');
-                    }
-                    if (!contentTd) throw new Error("Could not find post container");
+                    const contentTd = postDiv.closest('td.td_headerandpost');
+                    if (!contentTd) throw new Error('Could not find post');
 
+                    let authorName = 'Unknown';
                     const authorTd = contentTd.previousElementSibling;
-                    let authorName = "Unknown";
                     if (authorTd && authorTd.classList && authorTd.classList.contains('poster_info')) {
-                        const bElement = authorTd.querySelector('b');
-                        if (bElement) authorName = bElement.textContent.trim();
-                    } else {
-                        const possibleName = contentTd.querySelector('.username, .poster_info b, .poster > b');
-                        if (possibleName) authorName = possibleName.textContent.trim();
+                        const aElement = authorTd.querySelector('b > a');
+                        if (aElement) authorName = aElement.textContent.trim();
                     }
 
-                    let permalink = "";
+                    let permalink = '';
                     const subjectDiv = contentTd.querySelector('div.subject');
                     if (subjectDiv) {
-                        const linkElem = subjectDiv.querySelector('a');
-                        if (linkElem) permalink = linkElem.href;
+                        const linkElem = subjectDiv.querySelector('a'); if (linkElem) permalink = linkElem.href;
                     }
                     if (!permalink) {
-                        const anchorLink = contentTd.querySelector('a[href*="#msg"]');
-                        if (anchorLink) permalink = anchorLink.href;
+                        const anchorLink = contentTd.querySelector('a[href*="#msg"]'); if (anchorLink) permalink = anchorLink.href;
                     }
                     if (permalink) {
-                        const parts = permalink.split('#');
-                        let cleanBase = parts[0].split(';')[0];
-                        if (parts[1]) permalink = cleanBase + '#' + parts[1];
+                        const parts = permalink.split('#'); let cleanBase = parts[0].split(';')[0]; if (parts[1]) permalink = cleanBase + '#' + parts[1];
                     }
 
-                    let rawDate = "";
+                    let rawDate = '';
                     if (subjectDiv && subjectDiv.parentElement) {
-                        const smallTextDiv = subjectDiv.parentElement.querySelector('.smalltext');
-                        if (smallTextDiv) rawDate = smallTextDiv.textContent.trim();
+                        const smallTextDiv = subjectDiv.parentElement.querySelector('.smalltext'); if (smallTextDiv) rawDate = smallTextDiv.textContent.trim();
                     }
-                    if (rawDate && rawDate.startsWith("Today")) {
-                        const fullDate = getFormattedDateString();
-                        rawDate = rawDate.replace("Today", fullDate).replace(" at ", ", ");
-                    }
+                    if (rawDate.startsWith('Today')) rawDate = rawDate.replace('Today', getFormattedDateString()).replace(' at ', ', ');
 
                     const fragment = generateTextFragment(selectedText);
-                    const dateStr = rawDate || "Unknown Date";
-                    const authorStr = authorName || "Unknown Author";
+                    const dateStr = rawDate || 'Unknown Date';
+                    const authorStr = authorName || 'Unknown Author';
 
-                    const finalUrl = permalink ? `${permalink}#:~:text=${fragment}` : `#:~:text=${fragment}`;
+                    const finalUrl = `${permalink}#:~:text=${fragment}`;
                     const quoteHeader = `[url=${finalUrl}]${authorStr} on ${dateStr}[/url]`;
                     const bbcode = `[quote="${quoteHeader}"]\n${selectedText}\n[/quote]`;
 
-                    copyToClipboard(bbcode).then(success => {
+                    writeClipboard(bbcode).then(success => {
                         const originalText = btn.textContent;
                         if (success) {
-                            btn.textContent = "Copied!";
-                            btn.style.backgroundColor = "#dff0d8";
-                            btn.style.color = "#3c763d";
-                            setTimeout(() => {
-                                btn.textContent = originalText;
-                                btn.style.backgroundColor = "#e7eaef";
-                                btn.style.color = "#000";
-                                hideButton();
-                            }, 1000);
+                            btn.textContent = 'Copied!'; btn.style.backgroundColor = '#dff0d8'; btn.style.color = '#3c763d';
+                            setTimeout(() => { btn.textContent = originalText; btn.style.backgroundColor = '#e7eaef'; btn.style.color = '#000'; hideButton(); }, 1000);
                         } else {
-                            btn.textContent = "Copy failed";
-                            btn.style.backgroundColor = "#f2dede";
-                            setTimeout(() => {
-                                btn.textContent = originalText;
-                                btn.style.backgroundColor = "#e7eaef";
-                                btn.style.color = "#000";
-                                hideButton();
-                            }, 1500);
+                            btn.textContent = 'Error'; btn.style.backgroundColor = '#f2dede'; setTimeout(hideButton, 1000);
                         }
                     });
-
                 } catch (err) {
-                    console.error("Quote Error:", err);
-                    btn.textContent = "Error";
-                    btn.style.backgroundColor = "#f2dede";
-                    setTimeout(hideButton, 1500);
+                    console.error('Quote Error:', err);
+                    btn.textContent = 'Error'; btn.style.backgroundColor = '#f2dede'; setTimeout(hideButton, 1000);
                 }
             }
-
-            document.addEventListener('mouseup', function () {
-                const selection = window.getSelection();
-                const selectedText = selection.toString().trim();
-
-                if (selectedText.length < 1) {
-                    hideButton();
-                    return;
-                }
-
-                let node = selection.anchorNode;
-                if (!node) {
-                    hideButton();
-                    return;
-                }
-                if (node.nodeType === 3) node = node.parentNode;
-
-                const postDiv = node.closest('div.post') || node.closest('td.td_headerandpost');
-
-                if (!postDiv) {
-                    hideButton();
-                    return;
-                }
-
-                try {
-                    updateButtonPositionForSelection(selection);
-                } catch (err) {
-                    hideButton();
-                    return;
-                }
-
-                btn.onclick = function () {
-                    processQuote(postDiv, selectedText);
-                };
-            });
-
-            document.addEventListener('mousedown', function (e) {
-                if (e.target !== btn && !btn.contains(e.target)) {
-                    setTimeout(() => {
-                        const sel = document.getSelection();
-                        if (!sel || sel.isCollapsed) hideButton();
-                    }, 50);
-                }
-            });
-
-            const debouncedUpdate = debounce(() => {
-                const sel = document.getSelection();
-                if (sel && !sel.isCollapsed && btn.style.display !== 'none') {
-                    updateButtonPositionForSelection(sel);
-                }
-            }, 25);
-            document.addEventListener('selectionchange', debouncedUpdate);
-            window.addEventListener('scroll', debouncedUpdate, true);
-            window.addEventListener('resize', debouncedUpdate);
-
-            hideButton();
 
         })();
     },
@@ -1223,6 +1238,15 @@ chrome.runtime.onMessage.addListener(
             } catch (e) { /* ignore */ }
         } else if (message && message.key) {
             Bitcointalk.init(message.key, message.value, 0);
+        } else if (message && message.type === 'toggle-quill-editor') {
+            // Activate or disable the Quill editor according to the message.
+            if (typeof window.initQuillEditor === 'function' && typeof window.destroyQuillEditor === 'function') {
+                if (message.enabled) {
+                    window.initQuillEditor();
+                } else {
+                    window.destroyQuillEditor();
+                }
+            }
         } else if (message && message.type === 'extension-apply-custom') {
             try {
                 if (message.css) {
@@ -1334,3 +1358,52 @@ chrome.storage.onChanged.addListener((changes, area) => {
     applyCustomCss(changes.customCss.newValue);
   }
 });
+
+// Inject local Quill assets (quill.snow.css, quill.min.js) and initialize editor
+(function injectQuillAssets() {
+    if (window.__bt_quill_injected) return;
+    window.__bt_quill_injected = true;
+
+    const cssUrl = chrome.runtime.getURL('css/quill.snow.css');
+    const quillJsUrl = chrome.runtime.getURL('js/quill.min.js');
+    const initUrl = chrome.runtime.getURL('js/quill-editor.js');
+
+    function doInject() {
+        try {
+            // inject stylesheet
+            try {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = cssUrl;
+                (document.head || document.documentElement).appendChild(link);
+            } catch (e) { /* ignore */ }
+
+            // inject quill script
+            const s = document.createElement('script');
+            s.src = quillJsUrl;
+            s.async = false;
+            s.onload = function () {
+                try {
+                    // inject initializer
+                    const s2 = document.createElement('script');
+                    s2.src = initUrl;
+                    s2.async = false;
+                    s2.onload = function () {
+                        try { if (window.initQuillEditor) window.initQuillEditor(); } catch (e) { }
+                    };
+                    (document.documentElement || document.head || document.body).appendChild(s2);
+                } catch (e) { console.warn('quill init inject failed', e); }
+            };
+            s.onerror = function (e) { console.warn('quill script failed to load', e); };
+            (document.documentElement || document.head || document.body).appendChild(s);
+        } catch (err) {
+            console.warn('injectQuillAssets error', err);
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', doInject, { once: true });
+    } else {
+        doInject();
+    }
+})();

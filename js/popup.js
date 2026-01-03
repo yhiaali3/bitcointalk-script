@@ -30,68 +30,24 @@ function showModal(message, callback) {
   }
 }
 // js/popup.js
-// Popup logic: modern UI, emoji catalog selection, collapsible emoji panel,
-// theme buttons restored, ON/OFF visual states (green/red) and persistent storage.
-const EMOJI_CATALOG = [
-  { id: 'evil-grin', filename: 'evil-grin.png', label: 'Mischievous', unicode: '😈' },
-  { id: 'smile', filename: 'smile.png', label: 'Happy', unicode: '😊' },
-  { id: 'flushed', filename: 'flushed.png', label: 'Embarrassed', unicode: '😳' },
-  { id: 'innocent', filename: 'innocent.png', label: 'Innocent', unicode: '😇' },
-  { id: 'joy', filename: 'joy.png', label: 'Joy', unicode: '😂' },
-  { id: 'sad', filename: 'sad.png', label: 'Sad', unicode: '😢' },
-  { id: 'angry', filename: 'angry.png', label: 'Angry', unicode: '😠' },
-  { id: 'love', filename: 'love.png', label: 'Love', unicode: '😍' },
-  { id: 'surprised', filename: 'surprised.png', label: 'Surprised', unicode: '😲' },
-  { id: 'thinking', filename: 'thinking.png', label: 'Thinking', unicode: '🤔' },
-  { id: 'cry', filename: 'cry.png', label: 'Crying', unicode: '😭' },
-  { id: 'thumbs-up', filename: 'thumbs-up.png', label: 'Thumbs Up', unicode: '👍' },
-  { id: 'thumbs-down', filename: 'thumbs-down.png', label: 'Thumbs Down', unicode: '👎' },
-  { id: 'wink', filename: 'wink.png', label: 'Wink', unicode: '😉' },
-  { id: 'laugh', filename: 'laugh.png', label: 'Laugh', unicode: '😆' },
-  { id: 'bored', filename: 'bored.png', label: 'Bored', unicode: '🙄' },
-  { id: 'sleepy', filename: 'sleepy.png', label: 'Sleepy', unicode: '😴' },
-  { id: 'party', filename: 'party.png', label: 'Party', unicode: '🎉' },
-  { id: 'cool', filename: 'cool.png', label: 'Cool', unicode: '😎' },
-  { id: 'blush', filename: 'blush.png', label: 'Blush', unicode: '🙂' }
-];
-function getDefaultToolbarList() {
-  return ['evil-grin.png', 'smile.png', 'joy.png', 'love.png', 'laugh.png', 'thumbs-up.png', 'sad.png', 'angry.png', 'surprised.png', 'wink.png', 'cry.png', 'thinking.png'];
-}
+// Popup logic: modern UI, theme manager, toggles and persistent storage.
 $(function () {
-  const $emojiGrid = $('#emoji-grid');
-  const $enableEmoji = $('#enableEmoji');
   const $enableReplacer = $('#enableReplacer');
   const $zoomSlider = $('#zoomSlider');
   const $zoomValue = $('#zoomValue');
-  const $emojiBody = $('#emojiBody');
-  const $toggleEmojiPanel = $('#toggleEmojiPanel');
-  const $emojiStatus = $('#emojiStatus');
   const $replacerStatus = $('#replacerStatus');
-  // build emoji grid
-  EMOJI_CATALOG.forEach(e => {
-    const imgUrl = chrome.runtime.getURL(`images/emojis/${e.filename}`);
-    const $tile = $(`
-      <div class="emoji-tile" data-filename="${e.filename}" data-unicode="${e.unicode}" title="${e.label}">
-        <img src="${imgUrl}" alt="${e.label}">
-      </div>
-    `);
-    $emojiGrid.append($tile);
-  });
   // load settings
   chrome.storage.local.get('bitcointalk', (result) => {
     const s = result && result.bitcointalk ? result.bitcointalk : {};
-    // emoji toolbar toggle (default true)
-    const enabledEmoji = s.enableEmojiToolbar !== false;
-    $enableEmoji.prop('checked', enabledEmoji);
-    updateStatusBadge($emojiStatus, enabledEmoji);
     // replacer toggle (default true)
-    const enabledReplacer = s.enableEmoticonReplacer !== false;
+    let enabledReplacer = s.enableEmoticonReplacer;
+    if (typeof enabledReplacer === 'undefined') {
+      enabledReplacer = true;
+      // Save the default value in storage
+      chrome.storage.local.set({ bitcointalk: { ...s, enableEmoticonReplacer: true } });
+    }
     $enableReplacer.prop('checked', enabledReplacer);
     updateStatusBadge($replacerStatus, enabledReplacer);
-    // emoji panel collapsed state default false (expanded)
-    const collapsed = !!s.emojiPanelCollapsed;
-    if (collapsed) $emojiBody.hide();
-    $toggleEmojiPanel.text(collapsed ? '▸' : '▾');
     // zoom
     let zoom = 100;
     if (s && s.zoom && !isNaN(parseInt(s.zoom))) zoom = parseInt(s.zoom);
@@ -131,17 +87,11 @@ $(function () {
       });
       // remove any CSS injected into popup itself
       document.querySelectorAll('link[data-extension-theme], style[data-extension-theme]').forEach(el => el.remove());
-      // close/reload popup UI
-      location.reload();
+      // close/reload popup UI Only when changing the theme, not when enabling/disabling the Enable button
+      // location.reload();
     });
   });
 });
-    // emoji toolbar list selections
-    const chosen = Array.isArray(s.emojiToolbarList) && s.emojiToolbarList.length ? s.emojiToolbarList : getDefaultToolbarList();
-    $emojiGrid.find('.emoji-tile').each(function () {
-      const fn = $(this).data('filename');
-      if (chosen.includes(fn)) $(this).addClass('selected');
-    });
   });
   // helper: save bitcointalk object partially
   function saveKeyValue(key, value) {
@@ -159,33 +109,28 @@ $(function () {
       });
     });
   }
-  // emoji tile click -> toggle selection
-  $emojiGrid.on('click', '.emoji-tile', function () {
-    $(this).toggleClass('selected');
-    // gather selected filenames
-    const selected = $emojiGrid.find('.emoji-tile.selected').map(function () { return $(this).data('filename'); }).get();
-    // if none selected, fall back to default
-    const list = selected.length ? selected : getDefaultToolbarList();
-    saveKeyValue('emojiToolbarList', list);
-  });
   // toggles
-  $enableEmoji.on('change', function () {
+  $enableReplacer.on('change', function (event) {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     const val = $(this).prop('checked');
-    saveKeyValue('enableEmojiToolbar', val);
-    updateStatusBadge($emojiStatus, val);
+    saveKeyValue('enableEmoticonReplacer', val);
+    updateStatusBadge($replacerStatus, val);
+    // Send a message to the current tab to directly enable or disable the editor
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      if (tabs && tabs.length > 0) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'toggle-quill-editor', enabled: val });
+      }
+    });
   });
   $enableReplacer.on('change', function () {
     const val = $(this).prop('checked');
     saveKeyValue('enableEmoticonReplacer', val);
     updateStatusBadge($replacerStatus, val);
   });
-  // panel collapse control
-  $toggleEmojiPanel.on('click', function () {
-    $emojiBody.toggle();
-    const collapsed = $emojiBody.is(':hidden');
-    $toggleEmojiPanel.text(collapsed ? '▸' : '▾');
-    saveKeyValue('emojiPanelCollapsed', collapsed);
-  });
+  // (emoji panel removed) -- no collapse handler
   // theme / other buttons
   $('button[data-key]').click(function () {
     const key = $(this).attr('data-key');
@@ -194,6 +139,31 @@ $(function () {
     if (key === 'theme') {
       $(`button[data-key="theme"]`).removeClass('active');
       $(this).addClass('active');
+      // If user explicitly picked a theme button, remove any stored custom/default theme
+      try {
+        chrome.storage.local.remove(['defaultTheme', 'customCss'], () => {
+          // notify tabs to reset any injected custom/default themes so numeric theme can apply
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            for (const tab of tabs) {
+              try { chrome.tabs.sendMessage(tab.id, { type: 'extension-reset-theme' }); } catch (e) { }
+            }
+          });
+        });
+      } catch (e) { /* ignore */ }
+      // Apply theme CSS file for colorblind-safe
+      if (value === 'colorblind-safe') {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          for (const tab of tabs) {
+            try {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'extension-apply-theme',
+                theme: 'colorblind-safe',
+                cssPath: 'css/bitcointalk/colorblind-safe.css'
+              });
+            } catch (e) { }
+          }
+        });
+      }
     } else if (['signature', 'avatar', 'price', 'pins', 'direction'].includes(key)) {
       // update visual state for toggle groups: mark the clicked value visually
       setToggleButtonVisual(key, value);
@@ -248,10 +218,10 @@ $(function () {
   const saveBtn = document.getElementById('saveTheme');
   const applyBtn = document.getElementById('applyTheme');
   const deleteBtn = document.getElementById('deleteTheme');
-  const defaultBtn = document.getElementById('setDefaultTheme');
   const exportBtn = document.getElementById('exportThemes');
   const importBtn = document.getElementById('importThemes');
   const importFile = document.getElementById('importThemesFile');
+  const editBtn = document.getElementById('editTheme');
   const themesList = document.getElementById('themesList');
   const cleanBtn = document.getElementById('cleanTheme');
   // Load saved themes
@@ -299,8 +269,14 @@ $(function () {
       chrome.storage.local.get('themes', (data) => {
         const themes = data.themes || {};
         const cssCode = themes[selected];
+        // Save customCss and notify active tabs immediately so the theme applies now
         chrome.storage.local.set({ customCss: cssCode }, () => {
-          // applied
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            for (const tab of tabs) {
+              try { chrome.tabs.sendMessage(tab.id, { type: 'extension-reset-theme' }); } catch (e) { }
+              try { chrome.tabs.sendMessage(tab.id, { type: 'extension-apply-custom', css: cssCode }); } catch (e) { }
+            }
+          });
         });
       });
     });
@@ -322,33 +298,6 @@ $(function () {
     });
   });
   // Set selected theme as default
-  defaultBtn.addEventListener('click', () => {
-    const selected = themesList.value;
-    if (!selected) return;
-    showModal(`Set "${selected}" as default theme?`, (confirmed) => {
-      if (!confirmed) return;
-      // get themes and bitcointalk object, remove any stored numeric theme so it won't override custom default
-      chrome.storage.local.get(['themes', 'bitcointalk'], (data) => {
-        const themes = (data && data.themes) ? data.themes : {};
-        const b = (data && data.bitcointalk) ? data.bitcointalk : {};
-        if (b.hasOwnProperty('theme')) delete b.theme;
-        const cssCode = themes[selected] || '';
-        // Save defaultTheme, clear bitcointalk.theme and set customCss so content scripts apply immediately
-        chrome.storage.local.set({ defaultTheme: selected, bitcointalk: b, customCss: cssCode }, () => {
-          // update list UI
-          updateThemesList(themes);
-          // notify active tabs to apply customCss immediately
-          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            for (const tab of tabs) {
-              try { chrome.tabs.sendMessage(tab.id, { type: 'extension-reset-theme' }); } catch (e) { }
-              try { chrome.tabs.sendMessage(tab.id, { key: 'theme', value: 'on' }); } catch (e) { }
-                try { chrome.tabs.sendMessage(tab.id, { type: 'extension-apply-custom', css: cssCode }); } catch (e) { }
-            }
-          });
-        });
-      });
-    });
-  });
   // Export themes to JSON file
   exportBtn.addEventListener('click', () => {
     chrome.storage.local.get('themes', (data) => {
@@ -395,34 +344,51 @@ $(function () {
     reader.readAsText(file);
     event.target.value = '';
   });
+
+  // Edit selected theme: load its name and CSS into the editor for modification
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      const selected = themesList.value;
+      if (!selected) {
+        showModal('Please select a theme to edit.', () => {});
+        return;
+      }
+      chrome.storage.local.get('themes', (data) => {
+        const themes = data.themes || {};
+        const cssCode = themes[selected] || '';
+        // populate editor and name input
+        textarea.value = cssCode;
+        themeNameInput.value = selected;
+        // mark current selection so updateThemesList can preserve selection
+        try { themesList.setAttribute('data-current', selected); } catch (e) { }
+        // focus editor for convenience
+        try { textarea.focus(); } catch (e) { }
+      });
+    });
+  }
   
   
   // Update themes list dropdown
   function updateThemesList(themes) {
     themesList.innerHTML = '';
-    // get defaultTheme to mark it with a star
-    chrome.storage.local.get('defaultTheme', (data) => {
-      const def = data && data.defaultTheme ? data.defaultTheme : null;
-      for (let name in themes) {
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = (name === def) ? (name + ' ★') : name;
-        if (name === def) option.setAttribute('data-default', '1');
-        themesList.appendChild(option);
-      }
-      if (themesList.options.length > 0) {
-        // keep previously selected if possible
-        try {
-          const cur = themesList.getAttribute('data-current');
-          if (cur) {
-            for (let i = 0; i < themesList.options.length; i++) {
-              if (themesList.options[i].value === cur) { themesList.selectedIndex = i; return; }
-            }
+    for (let name in themes) {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      themesList.appendChild(option);
+    }
+    if (themesList.options.length > 0) {
+      // keep previously selected if possible
+      try {
+        const cur = themesList.getAttribute('data-current');
+        if (cur) {
+          for (let i = 0; i < themesList.options.length; i++) {
+            if (themesList.options[i].value === cur) { themesList.selectedIndex = i; return; }
           }
-        } catch (e) { }
-        themesList.selectedIndex = 0;
-      }
-    });
+        }
+      } catch (e) { }
+      themesList.selectedIndex = 0;
+    }
   }
   // Clean themes Textarea
   cleanBtn.addEventListener('click', () => {

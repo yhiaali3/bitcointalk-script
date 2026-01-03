@@ -1,0 +1,257 @@
+@namespace html url(http://www.w3.org/1999/xhtml);
+@namespace xul url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
+
+/* :::::::: المتغيرات الأساسية لضمان التناسق :::::::: */
+:root {
+    --bg-main: #0a0f14;
+    --bg-surface: #161e26;
+    --bg-input: #1c252e;
+    --accent-primary: #f59e0b;
+    /* ذهبي بيتكوين */
+    --accent-secondary: #0ea5e9;
+    /* أزرق سماوي */
+    --border-vivid: #334155;
+    /* حدود واضحة */
+    --border-highlight: #f59e0b;
+    --text-primary: #f1f5f9;
+    --text-dim: #94a3b8;
+    --quote-bg: #1e293b;
+    --success: #10b981;
+}
+
+/* 1. إعدادات المتصفح والخلفية الأساسية */
+browser[type="content-primary"],
+html,
+body {
+    background: var(--bg-main) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+    line-height: 1.6 !important;
+}
+
+/* 2. منطق معالجة الصور (مقتبس من ملفك الأصلي مع تحسين) */
+*:not(:empty):not([onclick*="open"]):not(span):not([class*="stars"]):not([id*="stars"]):not([id="rating"]):not([class="rating"]):not([class*="prite"]):not([id*="prite"]):not([id*="lbImage"]) {
+    background-image: none !important;
+}
+
+/* 3. الحدود والحاويات (جعلها أوضح وأكثر حدة) */
+div[id],
+[class*="content"],
+[class*="container"] {
+    background-color: transparent !important;
+    border-color: var(--border-vivid) !important;
+}
+
+/* الحاويات الرئيسية العميقة */
+html:root>body>*>*>*>*:not(input):not([onclick])>div:not(:empty):not([id]) {
+    background: var(--bg-surface) !important;
+    border: 2px solid var(--border-vivid) !important;
+    /* حدود سميكة وواضحة */
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin-bottom: 10px !important;
+}
+
+/* 4. العناوين (H1 - H6) بتصميم عصري وحدود قوية */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    background: linear-gradient(90deg, var(--bg-surface), transparent) !important;
+    border-right: 4px solid var(--accent-primary) !important;
+    /* حد جانبي قوي */
+    border-bottom: 1px solid var(--border-vivid) !important;
+    padding: 12px 15px !important;
+    border-radius: 0 6px 6px 0 !important;
+    margin: 20px 0 10px 0 !important;
+}
+
+h1,
+h2 {
+    color: var(--accent-primary) !important;
+    font-size: 1.5em !important;
+}
+
+h3,
+h4 {
+    color: var(--accent-secondary) !important;
+    font-size: 1.2em !important;
+}
+
+/* 5. النصوص الخاصة والاقتباسات (Quotes & Code) */
+mark,
+code,
+pre,
+blockquote,
+[class*="quote"],
+td[style*="inset"][class="alt2"] {
+    background-color: var(--quote-bg) !important;
+    color: #fff;
+    border: 1px solid var(--border-vivid) !important;
+    border-right: 5px solid var(--accent-primary) !important;
+    padding: 15px !important;
+    border-radius: 6px !important;
+    display: block;
+}
+
+abbr,
+progress,
+time,
+label,
+.date {
+    color: var(--accent-secondary) !important;
+    font-weight: 600 !important;
+}
+
+/* 6. الجداول (أكثر وضوحاً) */
+table {
+    background-color: var(--bg-surface) !important;
+    border: 2px solid var(--border-vivid) !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+th,
+caption {
+    background-color: #1e293b !important;
+    color: var(--accent-primary) !important;
+    border-bottom: 2px solid var(--border-vivid) !important;
+    padding: 12px !important;
+}
+
+td {
+    border: 1px solid var(--border-vivid) !important;
+    padding: 10px !important;
+}
+
+/* 7. الأزرار والمدخلات (Form Elements) */
+input:not([type="checkbox"]):not([type="radio"]),
+button,
+textarea,
+select {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border-vivid) !important;
+    /* حدود أوضح */
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    transition: all 0.2s ease !important;
+    appearance: none !important;
+}
+
+input:focus,
+textarea:focus {
+    border-color: var(--accent-secondary) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2) !important;
+}
+
+/* أزرار الأكشن الرئيسية */
+html:root input[type="button"],
+html:root input[type="submit"],
+html:root button {
+    background: var(--accent-primary) !important;
+    color: #000 !important;
+    font-weight: 800 !important;
+    border: 2px solid #fff !important;
+    cursor: pointer !important;
+}
+
+html:root button:hover {
+    filter: brightness(1.1) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* 8. الروابط والتفاعل */
+a:link,
+a:link *:not(img) {
+    color: var(--accent-secondary) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid transparent !important;
+}
+
+a:hover {
+    color: var(--accent-primary) !important;
+    border-bottom: 1px solid var(--accent-primary) !important;
+}
+
+/* العناصر القابلة للضغط (onclick) مقتبس من ملفك */
+[onclick],
+[ondblclick],
+[onmousedown] {
+    color: var(--accent-primary) !important;
+    cursor: pointer !important;
+    text-decoration: underline dashed !important;
+}
+
+/* 9. القوائم والمنبثقات (Menus & Popups) */
+nav,
+menu,
+[class*="open"],
+[id*="Dropdown"],
+[class*="popup"],
+[class*="note"] {
+    background-color: var(--bg-surface) !important;
+    border: 2px solid var(--accent-primary) !important;
+    /* حدود ذهبية للمنبثقات */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 10. التنسيق الشامل (Universal Styles) */
+* {
+    border-color: var(--border-vivid) !important;
+    outline-color: var(--accent-primary) !important;
+    text-shadow: none !important;
+}
+
+/* الصور */
+img {
+    opacity: 0.9 !important;
+    border: 1px solid var(--border-vivid) !important;
+    border-radius: 6px !important;
+}
+
+img:hover {
+    opacity: 1 !important;
+    border-color: var(--accent-primary) !important;
+}
+
+/* التحديد (Selection) */
+::selection {
+    background-color: var(--accent-primary) !important;
+    color: #000 !important;
+}
+
+/* التواقيع (Signatures) */
+.signature {
+    border-top: 2px dashed var(--border-vivid) !important;
+    margin-top: 20px !important;
+    opacity: 0.7 !important;
+}
+
+body,
+td,
+th,
+tr {
+    color: #89b7f3;
+    font-size: 13px;
+    font-family: verdana, sans-serif;
+}
+
+.nav,
+.nav:link,
+.nav:visited {
+    color: #e0e0ff;
+    text-decoration: none;
+}
+
+html.bt-theme-2 * {
+    border-color: #000000 !important;
+    outline-color: var(--accent-primary) !important;
+    text-shadow: none !important;
+}

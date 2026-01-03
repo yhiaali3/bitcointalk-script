@@ -34,7 +34,11 @@
   };
 
   function getDefaultToolbarList() {
-    return ['evil-grin.png','smile.png','joy.png','love.png','laugh.png','thumbs-up.png','sad.png','angry.png','surprised.png','wink.png','cry.png','thinking.png'];
+    return [
+      'smile.png','joy.png','laugh.png','love.png','party.png','thumbs-up.png','thumbs-down.png',
+      'wink.png','evil-grin.png','cool.png','blush.png','bored.png','sleepy.png','innocent.png',
+      'flushed.png','surprised.png','thinking.png','cry.png','sad.png','angry.png'
+    ];
   }
 
   function buildItemsFromList(list) {
@@ -51,7 +55,8 @@
     const s = document.createElement('style');
     s.id = STYLE_ID;
     s.textContent = `
-      .bt-emoji-toolbar { display:inline-flex !important; gap:6px !important; align-items:center !important; margin:4px 0 !important; }
+      /* Toolbar aligned left above the editor; toolbar container uses default cursor */
+      .bt-emoji-toolbar { display:flex !important; gap:6px !important; align-items:center !important; justify-content:flex-start !important; width:100% !important; margin:6px 0 !important; cursor:default !important; }
       .bt-emoji-btn {
         display:inline-flex !important;
         align-items:center !important;
@@ -61,8 +66,8 @@
         background:#fff !important;
         padding:2px !important;
         border-radius:4px !important;
-        width:20px !important;
-        height:20px !important;
+        width:24px !important;
+        height:24px !important;
         box-shadow:0 1px 1px rgba(0,0,0,0.04) !important;
         box-sizing:border-box !important;
       }
@@ -80,8 +85,18 @@
     try {
       const rows = parseInt(ta.getAttribute('rows') || '0');
       if (rows >= 3) return true;
+      // Avoid frequent layout reads: cache the computed "large" result for 1000ms
+      const now = Date.now();
+      const cacheKey = '__bt_large_cache';
+      const cacheTimeKey = '__bt_large_cache_time';
+      const cachedTime = ta[cacheTimeKey] || 0;
+      if (ta[cacheKey] !== undefined && (now - cachedTime) < 1000) {
+        return !!ta[cacheKey];
+      }
       const rect = ta.getBoundingClientRect();
-      if (rect && rect.height && rect.height > 80) return true;
+      const isLarge = !!(rect && rect.height && rect.height > 80);
+      try { ta[cacheKey] = isLarge; ta[cacheTimeKey] = now; } catch (e) {}
+      if (isLarge) return true;
     } catch (e) {}
     return false;
   }
@@ -111,6 +126,19 @@
 
   function insertIntoTextInput(el, text) {
     try {
+      // If an SCEditor instance exists for this textarea, insert via the editor
+      let inst = null;
+      if (window.sceditor && typeof sceditor.instance === 'function') {
+        try { inst = sceditor.instance(el); } catch (e) { inst = null; }
+      }
+      if (inst && typeof inst.insert === 'function') {
+        try { inst.insert(text); } catch (e) { /* ignore */ }
+        try { inst.updateOriginal(); } catch (e) { /* ignore */ }
+        try { inst.focus(); } catch (e) { /* ignore */ }
+        return;
+      }
+
+      // Fallback to inserting into the native textarea
       el.focus();
       const start = el.selectionStart ?? el.value.length;
       const end = el.selectionEnd ?? start;
@@ -127,25 +155,70 @@
 
   function attachToolbarTo(target, items) {
     if (!target || target.__bt_has_toolbar) return;
-    if (!isLargeTextarea(target)) return;
+
+    // If SCEditor instance exists, attach next to the editor content container.
+    let attachElement = target;
+    if (window.sceditor && typeof sceditor.instance === 'function') {
+      try {
+        const inst = sceditor.instance(target);
+        if (inst && typeof inst.getContentAreaContainer === 'function') {
+          const container = inst.getContentAreaContainer();
+          if (container) attachElement = container;
+        }
+      } catch (e) {
+        /* ignore - fall back to textarea */
+      }
+    }
+
+    // Only attach if the target (or editor container) is visible or the textarea is large
+    try {
+      if (attachElement === target && !isLargeTextarea(target)) return;
+    } catch (e) { /* ignore */ }
 
     target.__bt_has_toolbar = true;
     const toolbar = createToolbar(items);
-    toolbar.classList.add('inline-after');
+    // Place toolbar above the editor/textarea, left-aligned
+    toolbar.classList.remove('inline-after');
 
     try {
-      // place toolbar above the textarea (so it visually relates to message area)
-      target.insertAdjacentElement('beforebegin', toolbar);
+      // Insert above the attachment point so it appears above the editor
+      attachElement.insertAdjacentElement('beforebegin', toolbar);
     } catch (err) {
-      const parent = target.parentNode;
-      if (parent) parent.appendChild(toolbar);
+      const parent = attachElement.parentNode;
+      if (parent) parent.insertBefore(toolbar, attachElement);
+      else document.body.appendChild(toolbar);
     }
+
+    // If an SCEditor instance exists for this textarea, cache it on the toolbar
+    try {
+      if (window.sceditor && typeof sceditor.instance === 'function') {
+        try {
+          const inst = sceditor.instance(target);
+          if (inst) toolbar._bt_inst = inst;
+        } catch (e) { /* ignore */ }
+      }
+    } catch (e) { /* ignore */ }
 
     toolbar.addEventListener('click', (ev) => {
       const btn = ev.target.closest('.bt-emoji-btn');
       if (!btn) return;
       const unicode = btn.dataset.unicode || '';
       if (!unicode) return;
+
+      // Prefer cached instance, otherwise try to get one dynamically
+      let inst = toolbar._bt_inst || null;
+      if (!inst && window.sceditor && typeof sceditor.instance === 'function') {
+        try { inst = sceditor.instance(target); } catch (e) { inst = null; }
+      }
+
+      if (inst && typeof inst.insert === 'function') {
+        try { inst.insert(unicode); } catch (e) { /* ignore */ }
+        try { inst.updateOriginal(); } catch (e) { /* ignore */ }
+        try { inst.focus(); } catch (e) { /* ignore */ }
+        return;
+      }
+
+      // Fallback
       insertIntoTextInput(target, unicode);
     });
   }
@@ -167,25 +240,35 @@
     chrome.storage.local.get('bitcointalk', (res) => {
       const s = res && res.bitcointalk ? res.bitcointalk : {};
       const enabled = s.enableEmojiToolbar !== false;
-      const list = Array.isArray(s.emojiToolbarList) && s.emojiToolbarList.length ? s.emojiToolbarList : getDefaultToolbarList();
+      // If no emojiToolbarList is stored, persist the default list for stability
+      const shouldPersistDefault = !Array.isArray(s.emojiToolbarList) || !s.emojiToolbarList.length;
+      const list = shouldPersistDefault ? getDefaultToolbarList() : s.emojiToolbarList;
+      if (shouldPersistDefault) {
+        try { s.emojiToolbarList = list; chrome.storage.local.set({ bitcointalk: s }); } catch (e) { /* ignore */ }
+      }
       const items = buildItemsFromList(list);
       removeAllToolbars();
       if (enabled) {
         scanAndAttach(items);
-        if (!window.__bt_toolbar_mu) {
-          const mo = new MutationObserver(muts => {
-            for (const m of muts) {
-              if (m.type === 'childList' && m.addedNodes.length) {
-                m.addedNodes.forEach(node => {
-                  if (node.nodeType !== 1) return;
-                  scanAndAttach(items, node);
-                });
+          if (!window.__bt_toolbar_mu) {
+            // Debounced scanner to avoid heavy work on rapid DOM mutations (reduces reflow/scroll jank)
+            let scanTimer = null;
+            const scheduleScan = (rootNode) => {
+              if (scanTimer) clearTimeout(scanTimer);
+              scanTimer = setTimeout(() => { scanAndAttach(items, rootNode || document); scanTimer = null; }, 120);
+            };
+            const mo = new MutationObserver(muts => {
+              // if many mutations happen, schedule a single scan after quiet period
+              for (const m of muts) {
+                if (m.type === 'childList' && m.addedNodes.length) {
+                  scheduleScan(m.target || document);
+                  return;
+                }
               }
-            }
-          });
-          mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-          window.__bt_toolbar_mu = mo;
-        }
+            });
+            mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
+            window.__bt_toolbar_mu = mo;
+          }
       } else {
         if (window.__bt_toolbar_mu) {
           try { window.__bt_toolbar_mu.disconnect(); } catch (e) {}

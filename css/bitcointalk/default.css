@@ -1,0 +1,50 @@
+/* custom.css — minimal critical rules to avoid FOUC */
+
+/* Base styles for html and body */
+html,
+body {
+    color: #111 !important;
+    /* Dark gray text */
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+    text-rendering: optimizeLegibility;
+    /* Improve text rendering */
+    background-color: #fff !important;
+    /* Ensure clean white background */
+}
+
+/* Ensure main containers are visible */
+body>.tborder,
+#bodyarea,
+.windowbg {
+    visibility: visible !important;
+}
+
+/* Quote header */
+.quoteheader {
+    background-color: #f0f0f0 !important;
+    /* Light gray background */
+    border: 1px solid #ccc !important;
+    /* Light border */
+    padding: 4px;
+    font-weight: bold;
+}
+
+/* Quote block */
+blockquote {
+    background-color: #fafafa !important;
+    /* Very light gray background */
+    border: 1px solid #ddd !important;
+    /* Subtle border */
+    padding: 6px;
+    margin: 4px 0;
+}
+
+
+/* Remove borders from images, icons, avatars */
+img,
+.icon,
+.avatar {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}

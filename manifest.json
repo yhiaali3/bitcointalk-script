@@ -38,11 +38,37 @@
         "https://*.bitcointalk.org/*",
         "http://*.bitcointalk.org/*"
       ],
+      "css": [
+        "css/quill.snow.css"
+      ],
+      "js": [
+        "js/quill.min.js",
+        "js/quill-editor.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.bitcointalk.org/*",
+        "http://*.bitcointalk.org/*"
+      ],
       "js": [
         "js/emoji-toolbar.js",
         "js/emoticon-replacer.js"
       ],
       "run_at": "document_idle",
+      "all_frames": false
+    }
+    ,
+    {
+      "matches": [
+        "https://bitcointalk.org/index.php?*"
+      ],
+      "js": [
+        "js/editor-image-uploader.js"
+      ],
+      "run_at": "document_start",
       "all_frames": false
     }
   ],
@@ -60,6 +86,9 @@
     {
       "resources": [
         "css/bitcointalk/*.css",
+        "css/quill.snow.css",
+        "js/quill.min.js",
+        "js/quill-editor.js",
         "icons/*.png",
         "images/bitcoin.png",
         "images/emojis/*",

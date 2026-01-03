@@ -1,0 +1,238 @@
+/* Dark theme 1 — copied from dark theme 2 for compatibility with popup button "Dark 1" */
+
+/* Base reset */
+html,
+body {
+    background-color: #111111 !important;
+    /* Dark background */
+    color: #C5C5C5 !important;
+    /* Light gray text */
+    font-family: Verdana, Arial, Helvetica, sans-serif !important;
+    font-size: 13px !important;
+    margin: 0;
+    padding: 12px 30px 4px 30px;
+    text-rendering: optimizeLegibility;
+}
+
+/* Links */
+a:link,
+a:visited {
+    color: #92A9BC !important;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    empty-cells: show;
+}
+
+td,
+th {
+    border: 1px solid #494949;
+    padding: 4px;
+    color: #C5C5C5;
+}
+
+/* Quotes */
+.quote {
+    color: #C5C5C5;
+    background-color: #494949;
+    border: 1px solid #BCBCBC;
+    padding: 5px;
+    margin: 1px 3px 6px 6px;
+    font-size: 11px;
+    line-height: 1.4em;
+}
+
+.quoteheader {
+    color: #92A9BC;
+    font-weight: bold;
+    font-size: 10px;
+    margin-left: 6px;
+}
+
+/* Code blocks */
+.code {
+    color: #000000;
+    background-color: #FFFFFF;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    border: 1px solid #000000;
+    padding: 5px;
+    margin: 1px 3px 4px 6px;
+    width: 93%;
+    white-space: nowrap;
+    overflow: auto;
+    max-height: 24em;
+}
+
+.codeheader {
+    color: #92A9BC;
+    font-weight: bold;
+    font-size: 10px;
+    margin-left: 6px;
+}
+
+/* Window backgrounds */
+.windowbg {
+    background-color: #2A2A2A;
+    color: #C5C5C5;
+}
+
+.windowbg2 {
+    background-color: #353535;
+    color: #C5C5C5;
+}
+
+.windowbg3 {
+    background-color: #3F3F3F;
+    color: #C5C5C5;
+}
+
+/* Titles and categories */
+.titlebg {
+    background: #4A4A4A;
+    color: #C5C5C5;
+    font-weight: bold;
+    border-top: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    padding: 6px 10px;
+}
+
+.catbg {
+    background: #575757;
+    color: #FFFFFF;
+    font-weight: bold;
+    border-bottom: 1px solid #FFFFFF;
+    padding: 6px 10px;
+}
+
+/* Inputs and buttons */
+input,
+textarea,
+button,
+select {
+    font-family: Verdana, sans-serif;
+    font-size: 90%;
+    color: #000000;
+}
+
+button,
+input[type="submit"],
+input[type="button"] {
+    background-color: #92A9BC;
+    color: #111111;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+button:hover,
+input[type="submit"]:hover,
+input[type="button"]:hover {
+    background-color: #657A8C;
+    color: #FFFFFF;
+}
+
+/* Images, icons, avatars */
+img,
+.icon,
+.avatar {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    max-width: 100%;
+}
+
+/* Signatures */
+.signature {
+    max-height: 4em;
+    overflow: hidden;
+    line-height: 1.3em;
+}
+
+/* Errors */
+.error {
+    color: red;
+}
+
+/* Misc */
+hr {
+    height: 1px;
+    border: 0;
+    background-color: #656565;
+}
+
+/* Small text variations */
+.smalltext {
+    font-size: 11px;
+}
+
+.middletext {
+    font-size: 90%;
+}
+
+.normaltext {
+    font-size: small;
+}
+
+.largetext {
+    font-size: large;
+}
+
+/* Posts and personal messages */
+.post,
+.personalmessage {
+    width: 100%;
+    overflow: auto;
+    line-height: 1.3em;
+}
+
+/* Tabs (navigation) */
+.maintab_back,
+.maintab_active_back {
+    color: #C5C5C5;
+    font-size: 11px;
+    padding: 6px;
+    font-family: Verdana, sans-serif;
+    font-weight: bold;
+}
+
+.maintab_back {
+    background: #2A2A2A;
+    border: 1px solid #494949;
+}
+
+.maintab_active_back {
+    background: #575757;
+    border-bottom: 3px solid #FFFFFF;
+}
+
+.maintab_back a:link,
+.maintab_back a:visited,
+.maintab_active_back a:link,
+.maintab_active_back a:visited {
+    color: #92A9BC;
+    text-decoration: none;
+}
+
+.maintab_back a:hover,
+.maintab_active_back a:hover {
+    text-decoration: underline;
+}
+
+/* Online/Offline indicators */
+img[src*="useron.gif"] {
+    vertical-align: middle;
+    margin: 2px;
+}
+
+img[src*="useroff.gif"] {
+    display: none;
+}

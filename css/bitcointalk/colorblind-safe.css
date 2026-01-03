@@ -1,0 +1,338 @@
+@namespace html url(http://www.w3.org/1999/xhtml);
+@namespace xul url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
+
+/* Browser Background */
+browser[type="content-primary"] {
+    background-color: #121212 !important;
+}
+
+/* No background images — preserve icons */
+*:not(:empty):not([onclick*="open"]):not(span):not([class*="stars"]):not([id*="stars"]):not([id="rating"]):not([class="rating"]):not([class*="prite"]):not([id*="prite"]):not([id*="lbImage"]) {
+    background-image: none !important;
+}
+
+/* Basic Bodies */
+html,
+body {
+    background: none #121212 !important;
+    color: #E0E0E0 !important;
+}
+
+/* Transparent descendants */
+body * {
+    background-color: transparent !important;
+}
+
+div[id] {
+    background-color: inherit !important;
+}
+
+/* Non-icon spans */
+span:not(:empty):not([class*="icon"]):not([id*="icon"]):not([class*="star"]):not([id*="star"]):not([id*="rating"]):not([class*="rating"]):not([class*="prite"]) {
+    background: none transparent !important;
+    border-color: #444 !important;
+}
+
+/* Main containers */
+html:root>body>*>*>*>*:not(input):not([onclick])>div:not(:empty):not([id]) {
+    background: none #1E1E1E !important;
+}
+
+/* :::::::: Text Presentation :::::::: */
+summary,
+details {
+    background-color: inherit !important;
+}
+
+abbr,
+progress,
+time,
+label,
+.date {
+    color: #BB86FC !important;
+    /* Lavender — clear for colorblind */
+}
+
+mark,
+code,
+pre,
+blockquote,
+[class*="quote"],
+td[style*="inset"][class="alt2"] {
+    background-color: #1A1A1A !important;
+    color: #E0E0E0 !important;
+    border-left: 3px solid #03DAC6 !important;
+    /* Teal — safe & distinct */
+}
+
+/* :::::::: Headings + Header :::::::: */
+header,
+#header {
+    background: linear-gradient(to bottom, #1E1E1E, #121212) !important;
+    border-bottom: 1px solid #03DAC6 !important;
+}
+
+#header h1 {
+    background-color: transparent !important;
+}
+
+h1,
+h2 {
+    background: none #2D2D2D !important;
+    color: #BB86FC !important;
+    border: 1px solid #BB86FC !important;
+    border-radius: 5px !important;
+}
+
+h3,
+h4 {
+    background: none #282828 !important;
+    color: #03DAC6 !important;
+    border: 1px solid #03DAC6 !important;
+    border-radius: 5px !important;
+}
+
+h5,
+h6 {
+    background: none #252525 !important;
+    color: #FF9800 !important;
+    /* Orange — safe instead of red */
+}
+
+/* :::::::: Lists :::::::: */
+dt {
+    background-color: #282828 !important;
+    border: 1px solid #444 !important;
+}
+
+dl,
+dd {
+    background-color: #1E1E1E !important;
+}
+
+li,
+ul {
+    background-color: inherit !important;
+}
+
+li a:not([class*="icon"]):not([id*="icon"]):not([onclick]),
+dt a:not([class*="icon"]):not([id*="icon"]):not([onclick]) {
+    color: #BB86FC !important;
+    text-decoration: none !important;
+}
+
+/* Hover */
+li[class*="item"] a:hover,
+li[class*="item"]:hover,
+[class*="menuitem"]:hover {
+    background-color: #333333 !important;
+}
+
+/* :::::::: Tables :::::::: */
+table {
+    background-color: #1E1E1E !important;
+    border: 1px solid #444 !important;
+}
+
+table table {
+    background: #1A1A1A !important;
+}
+
+th,
+caption {
+    background-color: #282828 !important;
+    color: #BB86FC !important;
+    border: 1px solid #444 !important;
+}
+
+/* :::::::: Input & Buttons :::::::: */
+input *,
+textarea * {
+    color: #E0E0E0 !important;
+}
+
+html body input:not([type="image"]),
+button,
+html body textarea {
+    background: none #282828 !important;
+    color: #E0E0E0 !important;
+    border: 1px solid #666 !important;
+    border-radius: 4px !important;
+    -moz-appearance: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+/* Preserve native checkboxes/radios */
+html body input[type="checkbox"] {
+    -moz-appearance: checkbox !important;
+    -webkit-appearance: checkbox !important;
+    appearance: checkbox !important;
+}
+
+html body input[type="radio"] {
+    -moz-appearance: radio !important;
+    -webkit-appearance: radio !important;
+    appearance: radio !important;
+}
+
+/* Custom buttons */
+html:root input[type="button"],
+html:root input[type="submit"],
+html:root input[type="reset"],
+html:root button {
+    color: #FFFFFF !important;
+    background: linear-gradient(to bottom, #3700B3, #2D0099) !important;
+    /* Deep purple */
+    border: 1px solid #BB86FC !important;
+    border-radius: 4px !important;
+    font-weight: bold;
+}
+
+html:root input[type="button"]:hover,
+html:root button:hover {
+    background: linear-gradient(to bottom, #03DAC6, #02B8A8) !important;
+    /* Teal hover */
+    color: #121212 !important;
+}
+
+/* Dropdowns */
+select,
+option,
+optgroup {
+    background: none #282828 !important;
+    border: 1px solid #666 !important;
+    color: #E0E0E0 !important;
+    -moz-appearance: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+/* :::::::: Misc :::::::: */
+address {
+    background: none #252525 !important;
+}
+
+hr {
+    border-top: 1px solid #03DAC6 !important;
+    background: none !important;
+}
+
+/* Currently viewed page */
+.current {
+    color: #FF9800 !important;
+    /* Orange instead of white/red */
+    font-weight: bold !important;
+}
+
+/* Remove decorative images */
+img[src*="spacer"]:empty,
+[id*="round"]:empty,
+[class*="spacer"]:empty {
+    background-image: none !important;
+}
+
+/* Menus & popups */
+nav,
+menu,
+[class*="open"],
+[id*="Dropdown"],
+[class*="popup"],
+[class*="note"],
+[class*="detail"] {
+    background-color: #1E1E1E !important;
+    border: 1px solid #444 !important;
+}
+
+[class*="content"],
+[class*="container"] {
+    background-color: #1A1A1A !important;
+}
+
+/* Logo links */
+[id*="masthead"] a,
+[id*="header"] a,
+[id*="logo"] a,
+[class*="logo"] a {
+    color: #BB86FC !important;
+}
+
+/* Lightbox */
+html:root body [class*="layer"],
+html:root body #lightbox-nav,
+html:root body #imageContainer {
+    background-color: transparent !important;
+}
+
+/* :::::::: Universal Styles :::::::: */
+* {
+    color: #E0E0E0 !important;
+    border-color: #444 !important;
+    outline-color: #BB86FC !important;
+    text-shadow: none !important;
+}
+
+html *:before,
+html *:after {
+    color: #E0E0E0 !important;
+    border-color: #666 !important;
+    background: transparent !important;
+}
+
+/* Links */
+a:link,
+a:link *:not(img) {
+    color: #BB86FC !important;
+    text-decoration: none !important;
+}
+
+a:visited,
+a:visited * {
+    color: #9B6BFC !important;
+}
+
+a:hover,
+a:hover *:not(img) {
+    color: #03DAC6 !important;
+    background-color: rgba(3, 218, 198, 0.1) !important;
+}
+
+/* Clickable elements */
+[onclick],
+[ondblclick],
+[onmousedown] {
+    color: #FF9800 !important;
+}
+
+[onclick]:hover {
+    color: #FFD166 !important;
+}
+
+/* Images */
+img {
+    opacity: 0.85 !important;
+    border-radius: 4px !important;
+}
+
+img:hover {
+    opacity: 1 !important;
+    box-shadow: 0 0 6px rgba(3, 218, 198, 0.4) !important;
+}
+
+svg {
+    background: none #1E1E1E !important;
+}
+
+/* Selection */
+::selection,
+::-moz-selection {
+    background-color: rgba(187, 134, 252, 0.3) !important;
+    color: #000 !important;
+}
+
+/* Google fixes */
+.g .r,
+div.vsc:hover>.vspi {
+    background: transparent !important;
+    border: none !important;
+}
