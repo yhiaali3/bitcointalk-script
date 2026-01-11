@@ -20,7 +20,7 @@ body {
 
 /* Transparent descendants */
 body * {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 div[id] {
@@ -319,9 +319,7 @@ img:hover {
     box-shadow: 0 0 6px rgba(3, 218, 198, 0.4) !important;
 }
 
-svg {
-    background: none #1E1E1E !important;
-}
+
 
 /* Selection */
 ::selection,
@@ -335,4 +333,79 @@ svg {
 div.vsc:hover>.vspi {
     background: transparent !important;
     border: none !important;
+}
+
+/* Ensure table and blockquote SVG icons remain visible (force dark icon color) */
+#advanced-toolbar .ql-formats {
+    padding: 5px 6px;
+    margin-right: 2px;
+    border-right: 1px solid #d0d0d0;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: linear-gradient(#e7dbdb, #fafafa);
+    box-shadow: inset 0 1px 0 rgb(163 18 18 / 60%);
+    border-radius: 4px;
+}
+
+/* Make text and icons white (especially in dark themes) */
+html.bt-theme-3 #advanced-toolbar .ql-formats .ql-picker-label,
+html.bt-theme-3 #advanced-toolbar .ql-formats button,
+html.bt-theme-colorblind-safe #advanced-toolbar .ql-formats .ql-picker-label,
+html.bt-theme-colorblind-safe #advanced-toolbar .ql-formats button {
+    color: white !important;
+    /* If icons appear dark, add the following filter: */
+    /* filter: brightness(0) invert(1); */
+}
+
+
+
+/* Make image and toggle buttons have a white background without changing other icons */
+/* Target only the image upload button and custom toolbar buttons (safe selectors). */
+#advanced-toolbar button.ql-image,
+#advanced-toolbar .custom-tool-button.toggle,
+#advanced-toolbar .custom-tool-button.btn-toggle,
+#advanced-toolbar .custom-tool-button#btn-toggle {
+    background-color: #ffffff !important;
+    border-color: #ddd !important;
+    color: inherit !important;
+    /* don't force icon color */
+}
+
+html.bt-theme-3 button,
+html.bt-theme-3 html body textarea {
+
+    appearance: none !important;
+    -moz-appearance: none !important;
+    -webkit-appearance: none !important;
+    color: #ffffff !important;
+    border: solid 1px #7473e4 !important;
+    border-radius: 0 !important;
+    opacity: 1 !important;
+    font-size: 10pt !important;
+    font-weight: bold;
+}
+
+html.bt-theme-colorblind-safe span:not(:empty):not([class*="icon"]):not([id*="icon"]):not([class*="star"]):not([id*="star"]):not([id*="rating"]):not([class*="rating"]):not([class*="prite"]) {
+    background: #673AB7 !important;
+    border-color: #444 !important;
+}
+
+#advanced-toolbar .ql-formats button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor !important;
+}
+
+.ql-snow .ql-stroke {
+    fill: none;
+    stroke: #f0f0f0;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+    fill: #ffffff;
 }

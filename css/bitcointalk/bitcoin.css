@@ -18,7 +18,7 @@ body {
 }
 
 body * {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 div[id] {
@@ -37,7 +37,7 @@ time,
 label,
 .date {
     color: #FFD700 !important;
-    /* ذهبي نقي */
+    /* Pure gold */
 }
 
 mark,
@@ -48,7 +48,7 @@ blockquote,
 td[style*="inset"][class="alt2"] {
     background-color: #141414 !important;
     border-left: 3px solid #D4AF37 !important;
-    /* ذهبي برونزي */
+    /* Bronzed gold */
     color: #f0f0f0 !important;
     padding: 8px !important;
     margin: 8px 0 !important;
@@ -270,3 +270,122 @@ img[src*="spacer"]:empty,
 [class*="spacer"]:empty {
     background-image: none !important;
 }
+
+/* Improve Quill picker visibility in dark3 */
+.ql-color .ql-picker-options>*,
+.ql-font .ql-picker-options>*,
+.ql-size .ql-picker-options>* {
+    background: #512a9b;
+    color: #e0e0e0 !important;
+    border: 1px solid #3fb50c !important;
+    box-shadow: -20px 20px 12px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 4px !important;
+    z-index: 10002 !important
+}
+
+/* Ensure table and blockquote SVG icons remain visible (force dark icon color) */
+#advanced-toolbar #btn-table svg,
+#advanced-toolbar .ql-blockquote svg {
+    color: #000 !important;
+    fill: #000 !important;
+    stroke: #000 !important;
+
+}
+
+/* If icons inside white buttons still inherit light color, prefer explicit dark fill */
+#advanced-toolbar button.ql-image svg {
+    display: none !important;
+
+}
+
+/* Ensure the resizer pseudo-elements are visible despite broad pseudo-element resets */
+#quill-resizer:before,
+#quill-resizer:after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 14px;
+    background: #1781faff !important;
+    display: block !important;
+    pointer-events: none !important;
+    z-index: 10003 !important;
+}
+
+/* vertical bar (left part) and horizontal bar (bottom part) sizes */
+#quill-resizer:before {
+    width: 4px !important;
+    height: 20px !important;
+}
+
+#quill-resizer:after {
+    width: 20px !important;
+    height: 4px !important;
+}
+
+#advanced-toolbar .ql-formats button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor !important;
+}
+
+.ql-snow .ql-stroke {
+    fill: none;
+    stroke: hsl(0, 4%, 95%);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+    fill: #080808;
+}
+
+.ql-formats.font-block {
+    color: #000 !important;
+    /* Text color black */
+    padding-right: 12px !important;
+    /* Right padding */
+}
+
+#advanced-toolbar .ql-formats {
+    padding: 5px 6px;
+    margin-right: 2px;
+    border-right: 1px solid #d0d0d0;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: rgb(18, 18, 19) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+
+/* ========== Dark 3: Font Size Enhancements ========== */
+
+/* --- 1. Read threads text (message display) --- */
+html.bt-theme-3 .post,
+html.bt-theme-3 .signature,
+html.bt-theme-3 .smalltext {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+/* --- 2. Editor box (Quill + original textarea) --- */
+html.bt-theme-3 #bitcointalk-advanced-editor .ql-editor,
+html.bt-theme-3 textarea[name="message"] {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+/* --- 3. Quotes: smaller than base font --- */
+html.bt-theme-3 blockquote,
+html.bt-theme-3 .quote,
+html.bt-theme-3 [class*="quote"],
+html.bt-theme-3 .bbc_standard_quote {
+    font-size: 14px !important;
+    /* ~82% من 17px */
+    line-height: 1.5 !important;
+}
+
+/* --- 4. Safety: do not affect other elements --- */
+/* No need to change headings or buttons — not targeted originally */

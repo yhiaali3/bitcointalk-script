@@ -48,3 +48,8 @@ img,
     outline: none !important;
     box-shadow: none !important;
 }
+
+/* Ensure the original textarea always shows a text cursor */
+textarea[name="message"].editor {
+    cursor: text !important;
+}

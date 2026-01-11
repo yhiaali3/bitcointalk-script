@@ -22,7 +22,7 @@ body {
 
 /* Make descendents of the body element transparent.  Formerly "DIV + SPAN" rules. */
 body * {
-    background-color: transparent !important;
+    background-color: transparent;
 }
 
 /* Give id's BG hopefully */
@@ -424,7 +424,7 @@ img:hover {
 }
 
 svg {
-    background: none #666 !important;
+    background: none #F6F7B9 !important;
 }
 
 /* Highlight */
@@ -446,3 +446,167 @@ div.vso>.vspi {
     background: none transparent !important;
     border: none !important;
 }
+
+
+/* Improve Quill picker visibility in dark3 */
+.ql-color .ql-picker-options>*,
+.ql-font .ql-picker-options>*,
+.ql-size .ql-picker-options>* {
+    background: #512a9b;
+    color: #e0e0e0 !important;
+    border: 1px solid #3fb50c !important;
+    box-shadow: -20px 20px 12px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 4px !important;
+    z-index: 10002 !important
+}
+
+
+html.bt-theme-3 button,
+html.bt-theme-3 html body textarea {
+
+    appearance: none !important;
+    -moz-appearance: none !important;
+    -webkit-appearance: none !important;
+    color: #ffffff !important;
+    border: solid 1px #7473e4 !important;
+    border-radius: 0 !important;
+    opacity: 1 !important;
+    font-size: 10pt !important;
+    font-weight: bold;
+
+}
+
+input,
+textarea,
+button {
+    color: #fff;
+    font-family: verdana, sans-serif;
+}
+
+.windowbg,
+#preview_body {
+    color: #000000;
+    background-color: #1b1b22;
+}
+
+.nav,
+.nav:link,
+.nav:visited {
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Ensure text cursor appears on the original message box */
+textarea[name="message"].editor {
+    cursor: text !important;
+}
+
+/* Specific to the dark theme (optional but recommended) */
+html.bt-theme-3 textarea[name="message"].editor {
+    cursor: text !important;
+}
+
+/* Optional: normal cursor on buttons */
+.ql-toolbar button,
+.ql-picker-label,
+.ql-picker-item {
+    cursor: pointer !important;
+}
+
+/* Make image and toggle buttons have a white background without changing other icons */
+/* Target only the image upload button and custom toolbar buttons (safe selectors). */
+#advanced-toolbar button.ql-image,
+#advanced-toolbar .custom-tool-button.toggle,
+#advanced-toolbar .custom-tool-button.btn-toggle,
+#advanced-toolbar .custom-tool-button#btn-toggle {
+    background-color: #ffffff !important;
+    border-color: #ddd !important;
+    color: inherit !important;
+    /* don't force icon color */
+}
+
+/* Ensure table and blockquote SVG icons remain visible (force dark icon color) */
+#advanced-toolbar #btn-table svg,
+#advanced-toolbar .ql-blockquote svg {
+    color: #000 !important;
+    fill: #000 !important;
+    stroke: #000 !important;
+}
+
+/* If icons inside white buttons still inherit light color, prefer explicit dark fill */
+#advanced-toolbar button.ql-image svg {
+    display: none !important;
+}
+
+/* Ensure the resizer pseudo-elements are visible despite broad pseudo-element resets */
+#quill-resizer:before,
+#quill-resizer:after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 14px;
+    background: #1781faff !important;
+    display: block !important;
+    pointer-events: none !important;
+    z-index: 10003 !important;
+}
+
+/* vertical bar (left part) and horizontal bar (bottom part) sizes */
+#quill-resizer:before {
+    width: 4px !important;
+    height: 20px !important;
+}
+
+#quill-resizer:after {
+    width: 20px !important;
+    height: 4px !important;
+}
+
+#advanced-toolbar .ql-formats button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor !important;
+}
+
+.ql-snow .ql-stroke {
+    fill: none;
+    stroke: #080808;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+    fill: #080808;
+}
+
+/* ========== Dark 3: Font Size Enhancements ========== */
+
+/* --- 1. Read threads text (message display) --- */
+html.bt-theme-3 .post,
+html.bt-theme-3 .signature,
+html.bt-theme-3 .smalltext {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+/* --- 2. Editor box (Quill + original textarea) --- */
+html.bt-theme-3 #bitcointalk-advanced-editor .ql-editor,
+html.bt-theme-3 textarea[name="message"] {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+/* --- 3. Quotes: smaller than base font --- */
+html.bt-theme-3 blockquote,
+html.bt-theme-3 .quote,
+html.bt-theme-3 [class*="quote"],
+html.bt-theme-3 .bbc_standard_quote {
+    font-size: 14px !important;
+    /* ~82% of 17px */
+    line-height: 1.5 !important;
+}
+
+/* --- 4. Safety: do not affect other elements --- */
+/* No need to change headings or buttons — not targeted originally */

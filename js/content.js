@@ -207,7 +207,7 @@
                 (function callInit(retries) {
                     try {
                         if (window.initQuillEditor) return void window.initQuillEditor();
-                    } catch (e) {}
+                    } catch (e) { }
                     if (retries > 0) setTimeout(function () { callInit(retries - 1); }, 200);
                 })(10);
                 updateButtons(true);
@@ -234,7 +234,7 @@
                     (function callInit(retries) {
                         try {
                             if (window.initQuillEditor) return void window.initQuillEditor();
-                        } catch (e) {}
+                        } catch (e) { }
                         if (retries > 0) setTimeout(function () { callInit(retries - 1); }, 200);
                     })(10);
                 } else {
@@ -1141,7 +1141,7 @@ const Bitcointalk = {
 
             function getFormattedDateString() {
                 const date = new Date();
-                const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                 return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
             }
 
@@ -1150,12 +1150,12 @@ const Bitcointalk = {
                 ta.value = text;
                 ta.style.position = 'fixed'; ta.style.left = '-9999px';
                 document.body.appendChild(ta); ta.select();
-                try { return document.execCommand('copy'); } catch (e) { return false; } finally { try { ta.remove(); } catch (e) {} }
+                try { return document.execCommand('copy'); } catch (e) { return false; } finally { try { ta.remove(); } catch (e) { } }
             }
 
             async function writeClipboard(text) {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
+                    try { await navigator.clipboard.writeText(text); return true; } catch (e) { }
                 }
                 return fallbackCopy(text);
             }
@@ -1289,12 +1289,20 @@ chrome.runtime.onMessage.addListener(
 
                 const bt = storage && storage.bitcointalk ? storage.bitcointalk : {};
                 const hasDefaultOrCustom = !!(storage && (storage.defaultTheme || storage.customCss));
+                // Apply stored zoom immediately so it's not accidentally overridden
+                // by theme injection or later initialization steps.
+                if (bt && bt.zoom !== undefined) {
+                    try {
+                        Bitcointalk.init('zoom', bt.zoom, 1);
+                    } catch (e) { console.warn('Bitcointalk zoom init failed', e); }
+                }
                 if (bt && Object.keys(bt).length > 0) {
                     Object.keys(bt).forEach(function (key) {
                         // If a default theme or customCss exists, do not apply the numeric
                         // `bitcointalk.theme` value since that would override the user's
                         // chosen default/custom theme immediately after applying it.
-                        if (key === 'theme' && hasDefaultOrCustom) return;
+                        // Also skip 'zoom' because it's already applied above.
+                        if ((key === 'theme' && hasDefaultOrCustom) || key === 'zoom') return;
                         Bitcointalk.init(key, bt[key], 1);
                     });
                 }
@@ -1344,19 +1352,19 @@ function applyCustomCss(cssCode) {
 
 // Load default theme or last applied CSS
 chrome.storage.local.get(['customCss', 'defaultTheme', 'themes'], (data) => {
-  if (data.defaultTheme && data.themes && data.themes[data.defaultTheme]) {
-    applyCustomCss(data.themes[data.defaultTheme]);
-    chrome.storage.local.set({ customCss: data.themes[data.defaultTheme] });
-  } else if (data.customCss) {
-    applyCustomCss(data.customCss);
-  }
+    if (data.defaultTheme && data.themes && data.themes[data.defaultTheme]) {
+        applyCustomCss(data.themes[data.defaultTheme]);
+        chrome.storage.local.set({ customCss: data.themes[data.defaultTheme] });
+    } else if (data.customCss) {
+        applyCustomCss(data.customCss);
+    }
 });
 
 // Listen for changes from popup
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.customCss) {
-    applyCustomCss(changes.customCss.newValue);
-  }
+    if (area === 'local' && changes.customCss) {
+        applyCustomCss(changes.customCss.newValue);
+    }
 });
 
 // Inject local Quill assets (quill.snow.css, quill.min.js) and initialize editor
