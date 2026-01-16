@@ -97,7 +97,6 @@
 <button class="ql-strike"></button>
 </span>
 <span class="ql-formats">
-<button class="ql-list" value="ordered"></button>
 <button class="ql-list" value="bullet"></button>
 <button class="ql-indent" value="-1"></button>
 <button class="ql-indent" value="+1"></button>
@@ -126,7 +125,6 @@
 </div>
 <div id="bitcointalk-advanced-editor" style="height:420px;width:100%;background:#fff;"></div>
 <div id="quill-resizer" title="Resize editor" aria-hidden="true"></div>
-<button id="btn-preview-float" title="معاينة" style="position:absolute;right:10px;bottom:44px;z-index:10001;padding:8px 10px;border-radius:6px;background:#1781ff;color:#fff;border:0;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);">معاينة</button>
 <div class="editor-status-bar">
 <span id="quill-word-count">Words: 0</span>
 <span id="quill-sync-msg">Synced with Bitcointalk Form</span>
@@ -816,133 +814,7 @@
         const text = quill.getText();
         try { navigator.clipboard.writeText(text); } catch (e) { }
       });
-      // Floating preview toggle: replace editor content with final BBCode so
-      // forum preview/publish will send the exact same text.
-      try {
-        const btnPreviewFloat = document.getElementById('btn-preview-float');
-        if (btnPreviewFloat) {
-          var _savedDelta = null;
-          var _isPreviewMode = false;
-          var _previewHandler = null;
-          function enterPreviewMode() {
-            try {
-              var bb = '';
-              try { bb = transformQuillToBBCode(quill); } catch (e) { try { bb = quillToBBCode(quill); } catch (ee) { bb = quill.getText(); } }
-              try { _savedDelta = quill.getContents(); } catch (e) { _savedDelta = null; }
-              try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(bb); } catch (e) { }
-              // create a floating preview panel if not present; keep Quill active so user can edit
-              try {
-                var wrapperEl = document.getElementById('quill-wrapper') || wrapper;
-                var panel = document.getElementById('bt-preview-panel');
-                if (!panel) {
-                  panel = document.createElement('div');
-                  panel.id = 'bt-preview-panel';
-                  panel.style.position = 'absolute';
-                  panel.style.right = '10px';
-                  panel.style.bottom = '80px';
-                  panel.style.width = '380px';
-                  panel.style.maxHeight = '60%';
-                  panel.style.overflow = 'auto';
-                  // disable native resize so we can provide left-edge grip
-                  panel.style.resize = 'none';
-                  panel.style.background = '#fff';
-                  panel.style.border = '1px solid #ddd';
-                  panel.style.padding = '8px';
-                  panel.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
-                  panel.style.zIndex = 10002;
-                  panel.style.fontFamily = 'monospace';
-                  panel.style.fontSize = '13px';
-                  panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong>نص المعاينة (BBCode)</strong><button id="bt-preview-close" type="button" data-bt-ignore-flush style="margin-left:8px;">إغلاق</button></div><pre id="bt-preview-content" style="white-space:pre-wrap;word-wrap:break-word;">' + (bb || '') + '</pre>';
-                  try { wrapperEl.appendChild(panel); } catch (e) { document.body.appendChild(panel); }
-                  // add left-edge grip to resize from the left while keeping right anchored
-                  try {
-                    var grip = document.createElement('div');
-                    grip.id = 'bt-preview-grip';
-                    grip.style.position = 'absolute';
-                    grip.style.left = '-8px';
-                    grip.style.bottom = '-8px';
-                    grip.style.top = 'auto';
-                    grip.style.width = '16px';
-                    grip.style.height = '16px';
-                    grip.style.cursor = 'nwse-resize';
-                    grip.style.zIndex = 10003;
-                    panel.appendChild(grip);
-                    (function () {
-                      var dragging = false; var startX = 0; var startY = 0; var startW = 0; var startH = 0; var MIN_W = 200; var MIN_H = 80;
-                      grip.addEventListener('mousedown', function (ev) {
-                        ev.preventDefault(); ev.stopPropagation(); dragging = true; startX = ev.clientX; startY = ev.clientY; startW = panel.offsetWidth; startH = panel.offsetHeight;
-                        document.addEventListener('mousemove', doMove); document.addEventListener('mouseup', stopMove);
-                      });
-                      function doMove(e) { if (!dragging) return; try { var dx = startX - e.clientX; var dy = e.clientY - startY; var newW = Math.max(MIN_W, Math.round(startW + dx)); var newH = Math.max(MIN_H, Math.round(startH + dy)); panel.style.width = newW + 'px'; panel.style.height = newH + 'px'; } catch (err) { } }
-                      function stopMove() { dragging = false; document.removeEventListener('mousemove', doMove); document.removeEventListener('mouseup', stopMove); }
-                    })();
-                  } catch (e) { }
-                  var closeBtn = panel.querySelector('#bt-preview-close');
-                  if (closeBtn) closeBtn.addEventListener('click', function (ev) { try { ev.preventDefault(); ev.stopPropagation(); exitPreviewMode(); } catch (e) { } });
-                  // attach live update handler
-                  try {
-                    _previewHandler = function () {
-                      try {
-                        var newbb = '';
-                        try { newbb = transformQuillToBBCode(quill); } catch (e) { try { newbb = quillToBBCode(quill); } catch (ee) { newbb = quill.getText(); } }
-                        var contentEl = panel.querySelector && panel.querySelector('#bt-preview-content');
-                        if (contentEl) contentEl.textContent = newbb;
-                        try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(newbb); } catch (e) { }
-                      } catch (e) { }
-                    };
-                    if (quill && quill.on) quill.on('text-change', _previewHandler);
-                  } catch (e) { }
-                } else {
-                  var content = panel.querySelector && panel.querySelector('#bt-preview-content');
-                  if (content) content.textContent = bb;
-                  panel.style.display = 'block';
-                  // ensure handler attached
-                  try { if (!_previewHandler && quill && quill.on) { _previewHandler = function () { try { var newbb = transformQuillToBBCode(quill); var contentEl = panel.querySelector && panel.querySelector('#bt-preview-content'); if (contentEl) contentEl.textContent = newbb; try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(newbb); } catch (e) { } } catch (e) { } }; quill.on('text-change', _previewHandler); } } catch (e) { }
-                }
-              } catch (e) { }
-              try { btnPreviewFloat.textContent = 'إخفاء المعاينة'; } catch (e) { }
-              _isPreviewMode = true;
-            } catch (e) { }
-          }
-          function exitPreviewMode() {
-            try {
-              try {
-                var panel2 = document.getElementById('bt-preview-panel');
-                if (panel2) panel2.style.display = 'none';
-              } catch (e) { }
-              try { if (_savedDelta) quill.setContents(_savedDelta); } catch (e) { }
-              try { btnPreviewFloat.textContent = 'معاينة'; } catch (e) { }
-              _isPreviewMode = false;
-            } catch (e) { }
-          }
-          btnPreviewFloat.addEventListener('click', function (ev) {
-            try { ev.preventDefault(); ev.stopPropagation(); if (_isPreviewMode) exitPreviewMode(); else enterPreviewMode(); } catch (e) { }
-          });
-          // Ensure page-level preview/publish actions get the BBCode value
-          document.addEventListener('click', function (ev) {
-            try {
-              try { if (!window.__bt_quill_editor_active) return; } catch (ee) { }
-              // ignore clicks inside preview panel to avoid triggering global flush
-              try { if (ev.target && ev.target.closest && ev.target.closest('#bt-preview-panel')) return; } catch (e) { }
-              var t = ev.target;
-              for (var depth = 0; depth < 6 && t; depth++, t = t.parentElement) {
-                if (!t) break;
-                var v = (t.value || t.getAttribute && t.getAttribute('value') || '').toString().toLowerCase();
-                var txt = (t.innerText || t.textContent || '').toString().toLowerCase();
-                var id = (t.id || '').toString().toLowerCase();
-                var cls = (t.className || '').toString().toLowerCase();
-                var kws = ['preview', 'معاينة', 'post', 'نشر', 'submit', 'publish', 'save', 'send', 'ارسال'];
-                var matched = false;
-                for (var i = 0; i < kws.length; i++) { if (v.indexOf(kws[i]) !== -1 || txt.indexOf(kws[i]) !== -1 || id.indexOf(kws[i]) !== -1 || cls.indexOf(kws[i]) !== -1) { matched = true; break; } }
-                if (matched) {
-                  try { var bb2 = transformQuillToBBCode(quill); if (originalTextarea) originalTextarea.value = normalizeBlankLines(bb2); } catch (e) { try { if (originalTextarea) originalTextarea.value = quill.getText(); } catch (ee) { } }
-                  break;
-                }
-              }
-            } catch (e) { }
-          }, true);
-        }
-      } catch (e) { }
+      // Preview button and associated floating preview panel removed.
       // sync back to original textarea as HTML
       // Normalize blank lines to avoid accumulating extra empty paragraphs
       function normalizeBlankLines(s) {
@@ -1057,19 +929,8 @@
                   return '[*]' + (walk(li) || '');
                 }).join('\n');
 
-                // هنا نضيف شرط إضافي: إذا كان الزر bullet → [list]، وإذا كان ordered → [list=1]
-                if (ch.getAttribute('class') && ch.getAttribute('class').includes('ql-list')) {
-                  var type = ch.getAttribute('value'); // يلتقط قيمة الزر
-                  if (type === 'bullet') {
-                    t += '[list]\n' + listItems + '\n[/list]\n';
-                  } else if (type === 'ordered') {
-                    t += '[list=1]\n' + listItems + '\n[/list]\n';
-                  }
-                } else {
-                  // fallback: حسب الوسم
-                  t += (isOl ? ('[list=1]\n' + listItems + '\n[/list]\n')
-                             : ('[list]\n' + listItems + '\n[/list]\n'));
-                }
+                // Treat all Quill lists as unordered lists for Bitcointalk (no numeric lists)
+                t += '[list]\n' + listItems + '\n[/list]\n';
               } else if (tag === 'li') {
                 t += walk(ch);
               } else if (tag === 'pre' || tag === 'code') {
