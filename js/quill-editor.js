@@ -767,27 +767,36 @@
       } catch (e) { }
       // Register a simple Divider blot so we can insert a visual <hr> in the editor
       try {
-        // ensure code-block button creates a trailing paragraph after the code block
-        try {
-          var codeBtn = document.querySelector('.ql-code-block');
-          if (codeBtn) {
-            codeBtn.addEventListener('click', function (e) {
-              e.preventDefault();
-              e.stopPropagation();
-              try {
-                var range = quill.getSelection() || { index: quill.getLength() };
-                var insertText = '\n[code]\ninsert code here....\n[/code]\n';
-                quill.insertText(range.index, insertText, 'user');
-                var caret = range.index + insertText.length;
-                try { quill.setSelection(caret, 0); } catch (s) { }
-                // Ensure the line after the inserted block is not treated as a code-block
-                try { quill.formatLine(caret, 1, 'code-block', false); } catch (ff) { }
-                try { quill.focus(); } catch (f) { }
-              } catch (err) { }
-            });
-          }
-        } catch (e) { }
-        var BlockEmbed = Quill.import('blots/block/embed');
+        const codeBtn = document.querySelector('.ql-code-block');
+        if (codeBtn) {
+          codeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const range = quill.getSelection();
+            if (!range) return;
+
+            let insertText = '';
+
+            if (range.length > 0) {
+              // احصل على النص المحدد قبل حذفه
+              const selectedText = quill.getText(range.index, range.length) || '';
+              // حذف النص المحدد
+              quill.deleteText(range.index, range.length);
+              // أدخل النص المحدد داخل قالب الكود
+              insertText = '[code]\n' + selectedText + '\n[/code]';
+              quill.insertText(range.index, insertText, 'user');
+              quill.setSelection(range.index + insertText.length, 0);
+            } else {
+              insertText = '\n[code]\ninsert code here....\n[/code]\n';
+              quill.insertText(range.index, insertText, 'user');
+              quill.setSelection(range.index + insertText.length, 0);
+            }
+
+            try { quill.formatLine(range.index + insertText.length, 1, 'code-block', false); } catch (ff) { }
+            quill.focus();
+          });
+        } var BlockEmbed = Quill.import('blots/block/embed');
         class Divider extends BlockEmbed { }
         Divider.blotName = 'divider';
         Divider.tagName = 'hr';
