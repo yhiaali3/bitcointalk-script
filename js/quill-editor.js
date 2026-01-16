@@ -350,53 +350,121 @@
         function updateSizeUI() {
           try {
             if (!sizeSelectEl) sizeSelectEl = document.querySelector('.ql-size');
+            if (!sizeSelectEl) return;
+
             var sel = quill.getSelection();
             var uniformSize = '';
-            try {
-              if (sel && sel.length > 0) {
-                var sizes = {};
-                var start = sel.index;
-                var end = sel.index + sel.length;
-                for (var i = start; i < end; i++) {
+
+            // Helper: extract numeric size from string like "14px", "16pt", etc.
+            function extractNumeric(str) {
+              if (!str) return null;
+              var match = ('' + str).match(/(\d+)/);
+              return match ? parseInt(match[1], 10) : null;
+            }
+
+            // Helper: get computed font-size from a DOM node
+            function getComputedFontSize(node) {
+              if (!node || node.nodeType !== 1) return null;
+              try {
+                var style = window.getComputedStyle(node);
+                return style.fontSize || null;
+              } catch (e) { return null; }
+            }
+
+            if (sel && sel.length > 0) {
+              // Selection mode
+              var firstSize = null;
+              var isUniform = true;
+
+              for (var i = sel.index; i < sel.index + sel.length; i++) {
+                var currentSize = null;
+
+                // Try Quill's internal format first
+                try {
+                  var format = quill.getFormat(i, 1) || {};
+                  if (format.size) {
+                    currentSize = ('' + format.size).trim();
+                  }
+                } catch (e) { }
+
+                // Fallback: check actual DOM node
+                if (!currentSize) {
                   try {
-                    var f = quill.getFormat(i, 1) || {};
-                    var s = f.size ? ('' + f.size) : '';
-                    sizes[s] = true;
-                    if (Object.keys(sizes).length > 1) break;
+                    var leaf = quill.getLeaf(i);
+                    if (leaf && leaf[0] && leaf[0].domNode) {
+                      currentSize = getComputedFontSize(leaf[0].domNode);
+                    }
                   } catch (e) { }
                 }
-                if (Object.keys(sizes).length === 1) uniformSize = Object.keys(sizes)[0] || '';
-                else uniformSize = '';
-              } else {
-                var f0 = quill.getFormat() || {};
-                uniformSize = f0.size ? ('' + f0.size) : '';
-              }
-            } catch (e) { uniformSize = ''; }
 
-            if (sizeSelectEl) {
+                // Normalize to px if needed (e.g., "14pt" → ~18.67px)
+                if (currentSize && currentSize.includes('pt')) {
+                  var ptVal = extractNumeric(currentSize);
+                  if (ptVal) currentSize = Math.round(ptVal * 1.333) + 'px'; // 1pt ≈ 1.333px
+                }
+
+                if (i === sel.index) {
+                  firstSize = currentSize || '';
+                } else if (currentSize !== firstSize) {
+                  isUniform = false;
+                  break;
+                }
+              }
+
+              if (isUniform && firstSize) {
+                uniformSize = firstSize;
+              } else {
+                uniformSize = '';
+              }
+            } else {
+              // Cursor mode (no selection)
+              var currentSize = null;
+
+              // Try Quill format
               try {
-                // clear selection first
-                sizeSelectEl.value = '';
-                if (uniformSize) {
-                  // try exact match or numeric match
-                  var rawNum = ('' + uniformSize).match(/(\d+)/);
-                  rawNum = rawNum ? rawNum[1] : null;
-                  var found = false;
-                  for (var j = 0; j < sizeSelectEl.options.length; j++) {
-                    var opt2 = sizeSelectEl.options[j];
-                    var v2 = (opt2.value || '').toString();
-                    var t2 = (opt2.textContent || opt2.innerText || '').toString();
-                    if (v2 === uniformSize || v2 === (uniformSize + '') || (rawNum && v2.indexOf(rawNum) !== -1) || (rawNum && t2.indexOf(rawNum) !== -1)) {
-                      sizeSelectEl.selectedIndex = j; found = true; break;
+                var format = quill.getFormat() || {};
+                if (format.size) currentSize = ('' + format.size).trim();
+              } catch (e) { }
+
+              // Fallback to DOM
+              if (!currentSize) {
+                try {
+                  var range = quill.getSelection();
+                  if (range) {
+                    var leaf = quill.getLeaf(range.index);
+                    if (leaf && leaf[0] && leaf[0].domNode) {
+                      currentSize = getComputedFontSize(leaf[0].domNode);
                     }
                   }
-                  if (!found) sizeSelectEl.value = '';
-                } else {
-                  sizeSelectEl.value = '';
-                }
-              } catch (e) { }
+                } catch (e) { }
+              }
+
+              uniformSize = currentSize || '';
             }
-          } catch (e) { }
+
+            // Extract numeric value (e.g., "14px" → 14)
+            var numericSize = extractNumeric(uniformSize);
+
+            // Reset select
+            sizeSelectEl.value = '';
+
+            if (numericSize !== null) {
+              // Find matching option in the select
+              for (var j = 0; j < sizeSelectEl.options.length; j++) {
+                var optionValue = sizeSelectEl.options[j].value || '';
+                var optNum = extractNumeric(optionValue);
+                if (optNum === numericSize) {
+                  sizeSelectEl.selectedIndex = j;
+                  return;
+                }
+              }
+            }
+
+            // No match or mixed sizes → clear
+            sizeSelectEl.selectedIndex = -1;
+          } catch (e) {
+            if (sizeSelectEl) sizeSelectEl.selectedIndex = -1;
+          }
         }
         // ensure default typing size is 10px when caret is collapsed without size
         function ensureDefaultSizeOnCursor(range) {
@@ -522,72 +590,90 @@
           var wrap = document.getElementById('quill-wrapper');
           if (wrap) { wrap.setAttribute('translate', 'no'); wrap.classList.add('notranslate'); }
         } catch (e) { }
-      } catch (e) { }
-      // Ensure common keyboard shortcuts work reliably (undo/redo and direction changes)
+      } catch (e) { }// Ensure common keyboard shortcuts work reliably (undo/redo and direction changes)
       try {
         quill.root.addEventListener('keydown', function (e) {
           try {
             var key = e.key || '';
             var isCtrl = e.ctrlKey || e.metaKey;
+            var isShift = e.shiftKey;
+
             // Ctrl+Z -> undo
-            if (isCtrl && !e.shiftKey && (key === 'z' || key === 'Z')) {
+            if (isCtrl && !isShift && (key === 'z' || key === 'Z')) {
               try { quill.history && quill.history.undo && quill.history.undo(); } catch (err) { }
-              e.preventDefault();
-              e.stopPropagation();
-              return;
+              e.preventDefault(); e.stopPropagation(); return;
             }
+
             // Ctrl+Y or Ctrl+Shift+Z -> redo
-            if ((isCtrl && (key === 'y' || key === 'Y')) || (isCtrl && e.shiftKey && (key === 'z' || key === 'Z'))) {
+            if ((isCtrl && (key === 'y' || key === 'Y')) || (isCtrl && isShift && (key === 'z' || key === 'Z'))) {
               try { quill.history && quill.history.redo && quill.history.redo(); } catch (err) { }
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+
+            // ✅ Ctrl+Shift+← → RTL
+            if (isCtrl && isShift && (key === 'ArrowLeft' || key === 'Left')) {
+              try {
+                quill.format('direction', 'rtl');
+                quill.format('align', 'right');
+                var sel = quill.getSelection();
+                if (sel) {
+                  var lineInfo = quill.getLine(sel.index);
+                  if (lineInfo && lineInfo[0]) {
+                    var lineStart = sel.index - (lineInfo[1] || 0);
+                    var lineLen = lineInfo[0].length();
+                    quill.setSelection(lineStart + Math.max(0, lineLen - 1), 0);
+                  }
+                  quill.focus();
+                }
+              } catch (err) { }
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+
+            // ✅ Ctrl+Shift+→ → LTR
+            if (isCtrl && isShift && (key === 'ArrowRight' || key === 'Right')) {
+              try {
+                quill.format('direction', 'ltr');
+                quill.format('align', 'left');
+                var sel = quill.getSelection();
+                if (sel) {
+                  var lineInfo = quill.getLine(sel.index);
+                  if (lineInfo && lineInfo[0]) {
+                    var lineStart = sel.index - (lineInfo[1] || 0);
+                    var lineLen = lineInfo[0].length();
+                    quill.setSelection(lineStart + Math.max(0, lineLen - 1), 0);
+                  }
+                  quill.focus();
+                }
+              } catch (err) { }
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+
+            // ✅ Ctrl + Shift (أيًا كان) → يُحاكي الضغط على زر التبديل في شريط الأدوات
+            if (e.ctrlKey && e.shiftKey && !(key === 'r' || key === 'R' || key === 'l' || key === 'L')) {
               e.preventDefault();
               e.stopPropagation();
+              try {
+                // البحث عن زر التبديل (الذي يحتوي على الرمز T← أو T→)
+                const dirBtn = document.querySelector('.ql-direction[value="rtl"]');
+                if (dirBtn) {
+                  // محاكاة الضغط على الزر
+                  dirBtn.click();
+                  // نقل المؤشر إلى نهاية السطر
+                  const sel = quill.getSelection();
+                  if (sel) {
+                    const lineInfo = quill.getLine(sel.index);
+                    if (lineInfo && lineInfo[0]) {
+                      const lineStart = sel.index - (lineInfo[1] || 0);
+                      const lineLen = lineInfo[0].length();
+                      quill.setSelection(lineStart + Math.max(0, lineLen), 0);
+                    }
+                    quill.focus();
+                  }
+                }
+              } catch (err) { }
               return;
             }
-            // Ctrl+Shift+R -> set RTL and right align, move caret to line end
-            if (e.ctrlKey && e.shiftKey && (key === 'r' || key === 'R')) {
-              try {
-                quill.format('direction', 'rtl'); quill.format('align', 'right');
-                try {
-                  var sel = quill.getSelection();
-                  if (sel) {
-                    var startIdx = sel.index - (sel && sel.length ? 0 : 0);
-                    var lineInfo = quill.getLine(sel.index);
-                    if (lineInfo && lineInfo[0]) {
-                      var line = lineInfo[0];
-                      var lineStart = sel.index - (lineInfo[1] || 0);
-                      var lineLen = line.length();
-                      var newIdx = lineStart + Math.max(0, lineLen - 1);
-                      try { quill.setSelection(newIdx, 0); } catch (s) { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
-                    } else {
-                      try { quill.setSelection(quill.getLength(), 0); } catch (xx) { }
-                    }
-                    try { quill.focus(); } catch (f) { }
-                  }
-                } catch (e2) { }
-              } catch (err) { }
-              e.preventDefault(); e.stopPropagation(); return;
-            }
-            // Ctrl+Shift+L -> set LTR and left align, move caret to line end (visual left)
-            if (e.ctrlKey && e.shiftKey && (key === 'l' || key === 'L')) {
-              try {
-                quill.format('direction', 'ltr'); quill.format('align', 'left');
-                try {
-                  var sel2 = quill.getSelection();
-                  if (sel2) {
-                    var lineInfo2 = quill.getLine(sel2.index);
-                    if (lineInfo2 && lineInfo2[0]) {
-                      var line2 = lineInfo2[0];
-                      var lineStart2 = sel2.index - (lineInfo2[1] || 0);
-                      var lineLen2 = line2.length();
-                      var newIdx2 = lineStart2 + Math.max(0, lineLen2 - 1);
-                      try { quill.setSelection(newIdx2, 0); } catch (s2) { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
-                    } else { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
-                    try { quill.focus(); } catch (f) { }
-                  }
-                } catch (e3) { }
-              } catch (err) { }
-              e.preventDefault(); e.stopPropagation(); return;
-            }
+
           } catch (err) { }
         }, false);
       } catch (e) { }
