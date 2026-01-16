@@ -569,17 +569,13 @@ html.bt-theme-3 textarea[name="message"].editor {
 }
 
 .ql-snow .ql-stroke {
-    fill: none;
     stroke: #080808;
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 2;
 }
 
-.ql-snow .ql-fill,
-.ql-snow .ql-stroke.ql-fill {
-    fill: #080808;
-}
+
 
 /* ========== Dark 3: Font Size Enhancements ========== */
 
@@ -610,3 +606,61 @@ html.bt-theme-3 .bbc_standard_quote {
 
 /* --- 4. Safety: do not affect other elements --- */
 /* No need to change headings or buttons — not targeted originally */
+/* ======== فواصل ناعمة بين صفوف الجدول ======== */
+
+/* جدول المواضيع */
+table.table_grid {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+}
+
+/* صفوف الجدول */
+table.table_grid tr {
+    background: #14171e !important;
+    /* خلفية داكنة */
+    border-bottom: 1px solid #2a313f !important;
+    /* حدود ناعمة بين الصفوف */
+    transition: background 0.2s ease !important;
+}
+
+/* عند الهوفر */
+table.table_grid tr:hover {
+    background: #181b25 !important;
+    border-bottom: 1px solid #3a4052 !important;
+}
+
+/* الخلايا */
+table.table_grid td,
+table.table_grid th {
+    padding: 12px 16px !important;
+    border: none !important;
+    vertical-align: top !important;
+}
+
+/* عناوين الأعمدة */
+table.table_grid thead th {
+    background: #1a1f2b !important;
+    color: #f1f5f9 !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #334155 !important;
+    padding: 12px 16px !important;
+}
+
+/* إذا كان هناك فئة مثل .windowbg أو .windowbg2 */
+.windowbg,
+.windowbg2 {
+    background: #14171e !important;
+    border-bottom: 1px solid #2a313f !important;
+}
+
+.windowbg2 {
+    background: #181b25 !important;
+}
+
+.windowbg:hover,
+.windowbg2:hover {
+    background: #1c252e !important;
+    border-bottom: 1px solid #3a4052 !important;
+}

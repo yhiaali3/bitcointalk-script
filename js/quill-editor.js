@@ -126,6 +126,7 @@
 </div>
 <div id="bitcointalk-advanced-editor" style="height:420px;width:100%;background:#fff;"></div>
 <div id="quill-resizer" title="Resize editor" aria-hidden="true"></div>
+<button id="btn-preview-float" title="معاينة" style="position:absolute;right:10px;bottom:44px;z-index:10001;padding:8px 10px;border-radius:6px;background:#1781ff;color:#fff;border:0;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.2);">معاينة</button>
 <div class="editor-status-bar">
 <span id="quill-word-count">Words: 0</span>
 <span id="quill-sync-msg">Synced with Bitcointalk Form</span>
@@ -343,6 +344,75 @@
           } catch (e) { }
         });
       } catch (e) { }
+      // --- Font size sync & defaults ---
+      try {
+        // DOM select for size (populated earlier)
+        var sizeSelectEl = document.querySelector('.ql-size');
+        function normalizeSizeVal(v) { if (!v) return ''; return ('' + v).trim(); }
+        function updateSizeUI() {
+          try {
+            if (!sizeSelectEl) sizeSelectEl = document.querySelector('.ql-size');
+            var sel = quill.getSelection();
+            var uniformSize = '';
+            try {
+              if (sel && sel.length > 0) {
+                var sizes = {};
+                var start = sel.index;
+                var end = sel.index + sel.length;
+                for (var i = start; i < end; i++) {
+                  try {
+                    var f = quill.getFormat(i, 1) || {};
+                    var s = f.size ? ('' + f.size) : '';
+                    sizes[s] = true;
+                    if (Object.keys(sizes).length > 1) break;
+                  } catch (e) { }
+                }
+                if (Object.keys(sizes).length === 1) uniformSize = Object.keys(sizes)[0] || '';
+                else uniformSize = '';
+              } else {
+                var f0 = quill.getFormat() || {};
+                uniformSize = f0.size ? ('' + f0.size) : '';
+              }
+            } catch (e) { uniformSize = ''; }
+
+            if (sizeSelectEl) {
+              try {
+                // clear selection first
+                sizeSelectEl.value = '';
+                if (uniformSize) {
+                  // try exact match or numeric match
+                  var rawNum = ('' + uniformSize).match(/(\d+)/);
+                  rawNum = rawNum ? rawNum[1] : null;
+                  var found = false;
+                  for (var j = 0; j < sizeSelectEl.options.length; j++) {
+                    var opt2 = sizeSelectEl.options[j];
+                    var v2 = (opt2.value || '').toString();
+                    var t2 = (opt2.textContent || opt2.innerText || '').toString();
+                    if (v2 === uniformSize || v2 === (uniformSize + '') || (rawNum && v2.indexOf(rawNum) !== -1) || (rawNum && t2.indexOf(rawNum) !== -1)) {
+                      sizeSelectEl.selectedIndex = j; found = true; break;
+                    }
+                  }
+                  if (!found) sizeSelectEl.value = '';
+                } else {
+                  sizeSelectEl.value = '';
+                }
+              } catch (e) { }
+            }
+          } catch (e) { }
+        }
+        // ensure default typing size is 10px when caret is collapsed without size
+        function ensureDefaultSizeOnCursor(range) {
+          // Default size enforcement disabled intentionally.
+          return;
+        }
+        // update on selection and text-change
+        try { quill.on('selection-change', function (range) { try { updateSizeUI(); } catch (e) { } }); } catch (e) { }
+        try { quill.on('text-change', function () { try { updateSizeUI(); } catch (e) { } }); } catch (e) { }
+        // enforce default 10px on paste: transform incoming delta to have size 10px
+        // paste-size enforcement removed: paste handling moved to initQuillEditor to force plain-text paste
+        // initial defaults
+        try { updateSizeUI(); } catch (e) { }
+      } catch (e) { }
     })();
     return wrapper;
   }
@@ -421,6 +491,108 @@
         modules: { toolbar: '#advanced-toolbar' },
         theme: 'snow'
       });
+      // لصق كنص عادي فقط (بدون أي تنسيق)
+      try {
+        if (quill.clipboard && quill.clipboard.addMatcher) {
+          quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {
+            try {
+              delta.ops.forEach(op => {
+                if (op.attributes) delete op.attributes;
+              });
+            } catch (e) { }
+            return delta;
+          });
+        }
+      } catch (e) { }
+      // Prevent Chrome (and other translators) from translating the editor contents
+      try {
+        var editorRoot = quill && quill.root ? quill.root : document.querySelector('.ql-editor');
+        if (editorRoot) {
+          try { editorRoot.setAttribute('translate', 'no'); } catch (e) { }
+          try { editorRoot.classList.add('notranslate'); } catch (e) { }
+          // set a sensible language attribute based on content: prefer Arabic if RTL characters predominate
+          try {
+            var sampleText = (originalTextarea && originalTextarea.value) || (quill.getText && quill.getText()) || '';
+            var rtlCount = (sampleText.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length;
+            var ltrCount = (sampleText.match(/[A-Za-z]/g) || []).length;
+            var langAttr = rtlCount > ltrCount ? 'ar' : 'en';
+            try { editorRoot.setAttribute('lang', langAttr); } catch (e) { }
+          } catch (e) { }
+        }
+        // Also mark the wrapper so any external translators skip the whole section
+        try {
+          var wrap = document.getElementById('quill-wrapper');
+          if (wrap) { wrap.setAttribute('translate', 'no'); wrap.classList.add('notranslate'); }
+        } catch (e) { }
+      } catch (e) { }
+      // Ensure common keyboard shortcuts work reliably (undo/redo and direction changes)
+      try {
+        quill.root.addEventListener('keydown', function (e) {
+          try {
+            var key = e.key || '';
+            var isCtrl = e.ctrlKey || e.metaKey;
+            // Ctrl+Z -> undo
+            if (isCtrl && !e.shiftKey && (key === 'z' || key === 'Z')) {
+              try { quill.history && quill.history.undo && quill.history.undo(); } catch (err) { }
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            // Ctrl+Y or Ctrl+Shift+Z -> redo
+            if ((isCtrl && (key === 'y' || key === 'Y')) || (isCtrl && e.shiftKey && (key === 'z' || key === 'Z'))) {
+              try { quill.history && quill.history.redo && quill.history.redo(); } catch (err) { }
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            // Ctrl+Shift+R -> set RTL and right align, move caret to line end
+            if (e.ctrlKey && e.shiftKey && (key === 'r' || key === 'R')) {
+              try {
+                quill.format('direction', 'rtl'); quill.format('align', 'right');
+                try {
+                  var sel = quill.getSelection();
+                  if (sel) {
+                    var startIdx = sel.index - (sel && sel.length ? 0 : 0);
+                    var lineInfo = quill.getLine(sel.index);
+                    if (lineInfo && lineInfo[0]) {
+                      var line = lineInfo[0];
+                      var lineStart = sel.index - (lineInfo[1] || 0);
+                      var lineLen = line.length();
+                      var newIdx = lineStart + Math.max(0, lineLen - 1);
+                      try { quill.setSelection(newIdx, 0); } catch (s) { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
+                    } else {
+                      try { quill.setSelection(quill.getLength(), 0); } catch (xx) { }
+                    }
+                    try { quill.focus(); } catch (f) { }
+                  }
+                } catch (e2) { }
+              } catch (err) { }
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+            // Ctrl+Shift+L -> set LTR and left align, move caret to line end (visual left)
+            if (e.ctrlKey && e.shiftKey && (key === 'l' || key === 'L')) {
+              try {
+                quill.format('direction', 'ltr'); quill.format('align', 'left');
+                try {
+                  var sel2 = quill.getSelection();
+                  if (sel2) {
+                    var lineInfo2 = quill.getLine(sel2.index);
+                    if (lineInfo2 && lineInfo2[0]) {
+                      var line2 = lineInfo2[0];
+                      var lineStart2 = sel2.index - (lineInfo2[1] || 0);
+                      var lineLen2 = line2.length();
+                      var newIdx2 = lineStart2 + Math.max(0, lineLen2 - 1);
+                      try { quill.setSelection(newIdx2, 0); } catch (s2) { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
+                    } else { try { quill.setSelection(quill.getLength(), 0); } catch (xx) { } }
+                    try { quill.focus(); } catch (f) { }
+                  }
+                } catch (e3) { }
+              } catch (err) { }
+              e.preventDefault(); e.stopPropagation(); return;
+            }
+          } catch (err) { }
+        }, false);
+      } catch (e) { }
       // Ensure alignment buttons show icons (some styles/themes hide them); inject SVGs as fallback
       try {
         const svgIcons = {
@@ -644,17 +816,177 @@
         const text = quill.getText();
         try { navigator.clipboard.writeText(text); } catch (e) { }
       });
+      // Floating preview toggle: replace editor content with final BBCode so
+      // forum preview/publish will send the exact same text.
+      try {
+        const btnPreviewFloat = document.getElementById('btn-preview-float');
+        if (btnPreviewFloat) {
+          var _savedDelta = null;
+          var _isPreviewMode = false;
+          var _previewHandler = null;
+          function enterPreviewMode() {
+            try {
+              var bb = '';
+              try { bb = transformQuillToBBCode(quill); } catch (e) { try { bb = quillToBBCode(quill); } catch (ee) { bb = quill.getText(); } }
+              try { _savedDelta = quill.getContents(); } catch (e) { _savedDelta = null; }
+              try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(bb); } catch (e) { }
+              // create a floating preview panel if not present; keep Quill active so user can edit
+              try {
+                var wrapperEl = document.getElementById('quill-wrapper') || wrapper;
+                var panel = document.getElementById('bt-preview-panel');
+                if (!panel) {
+                  panel = document.createElement('div');
+                  panel.id = 'bt-preview-panel';
+                  panel.style.position = 'absolute';
+                  panel.style.right = '10px';
+                  panel.style.bottom = '80px';
+                  panel.style.width = '380px';
+                  panel.style.maxHeight = '60%';
+                  panel.style.overflow = 'auto';
+                  // disable native resize so we can provide left-edge grip
+                  panel.style.resize = 'none';
+                  panel.style.background = '#fff';
+                  panel.style.border = '1px solid #ddd';
+                  panel.style.padding = '8px';
+                  panel.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
+                  panel.style.zIndex = 10002;
+                  panel.style.fontFamily = 'monospace';
+                  panel.style.fontSize = '13px';
+                  panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><strong>نص المعاينة (BBCode)</strong><button id="bt-preview-close" type="button" data-bt-ignore-flush style="margin-left:8px;">إغلاق</button></div><pre id="bt-preview-content" style="white-space:pre-wrap;word-wrap:break-word;">' + (bb || '') + '</pre>';
+                  try { wrapperEl.appendChild(panel); } catch (e) { document.body.appendChild(panel); }
+                  // add left-edge grip to resize from the left while keeping right anchored
+                  try {
+                    var grip = document.createElement('div');
+                    grip.id = 'bt-preview-grip';
+                    grip.style.position = 'absolute';
+                    grip.style.left = '-8px';
+                    grip.style.bottom = '-8px';
+                    grip.style.top = 'auto';
+                    grip.style.width = '16px';
+                    grip.style.height = '16px';
+                    grip.style.cursor = 'nwse-resize';
+                    grip.style.zIndex = 10003;
+                    panel.appendChild(grip);
+                    (function () {
+                      var dragging = false; var startX = 0; var startY = 0; var startW = 0; var startH = 0; var MIN_W = 200; var MIN_H = 80;
+                      grip.addEventListener('mousedown', function (ev) {
+                        ev.preventDefault(); ev.stopPropagation(); dragging = true; startX = ev.clientX; startY = ev.clientY; startW = panel.offsetWidth; startH = panel.offsetHeight;
+                        document.addEventListener('mousemove', doMove); document.addEventListener('mouseup', stopMove);
+                      });
+                      function doMove(e) { if (!dragging) return; try { var dx = startX - e.clientX; var dy = e.clientY - startY; var newW = Math.max(MIN_W, Math.round(startW + dx)); var newH = Math.max(MIN_H, Math.round(startH + dy)); panel.style.width = newW + 'px'; panel.style.height = newH + 'px'; } catch (err) { } }
+                      function stopMove() { dragging = false; document.removeEventListener('mousemove', doMove); document.removeEventListener('mouseup', stopMove); }
+                    })();
+                  } catch (e) { }
+                  var closeBtn = panel.querySelector('#bt-preview-close');
+                  if (closeBtn) closeBtn.addEventListener('click', function (ev) { try { ev.preventDefault(); ev.stopPropagation(); exitPreviewMode(); } catch (e) { } });
+                  // attach live update handler
+                  try {
+                    _previewHandler = function () {
+                      try {
+                        var newbb = '';
+                        try { newbb = transformQuillToBBCode(quill); } catch (e) { try { newbb = quillToBBCode(quill); } catch (ee) { newbb = quill.getText(); } }
+                        var contentEl = panel.querySelector && panel.querySelector('#bt-preview-content');
+                        if (contentEl) contentEl.textContent = newbb;
+                        try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(newbb); } catch (e) { }
+                      } catch (e) { }
+                    };
+                    if (quill && quill.on) quill.on('text-change', _previewHandler);
+                  } catch (e) { }
+                } else {
+                  var content = panel.querySelector && panel.querySelector('#bt-preview-content');
+                  if (content) content.textContent = bb;
+                  panel.style.display = 'block';
+                  // ensure handler attached
+                  try { if (!_previewHandler && quill && quill.on) { _previewHandler = function () { try { var newbb = transformQuillToBBCode(quill); var contentEl = panel.querySelector && panel.querySelector('#bt-preview-content'); if (contentEl) contentEl.textContent = newbb; try { if (originalTextarea) originalTextarea.value = normalizeBlankLines(newbb); } catch (e) { } } catch (e) { } }; quill.on('text-change', _previewHandler); } } catch (e) { }
+                }
+              } catch (e) { }
+              try { btnPreviewFloat.textContent = 'إخفاء المعاينة'; } catch (e) { }
+              _isPreviewMode = true;
+            } catch (e) { }
+          }
+          function exitPreviewMode() {
+            try {
+              try {
+                var panel2 = document.getElementById('bt-preview-panel');
+                if (panel2) panel2.style.display = 'none';
+              } catch (e) { }
+              try { if (_savedDelta) quill.setContents(_savedDelta); } catch (e) { }
+              try { btnPreviewFloat.textContent = 'معاينة'; } catch (e) { }
+              _isPreviewMode = false;
+            } catch (e) { }
+          }
+          btnPreviewFloat.addEventListener('click', function (ev) {
+            try { ev.preventDefault(); ev.stopPropagation(); if (_isPreviewMode) exitPreviewMode(); else enterPreviewMode(); } catch (e) { }
+          });
+          // Ensure page-level preview/publish actions get the BBCode value
+          document.addEventListener('click', function (ev) {
+            try {
+              try { if (!window.__bt_quill_editor_active) return; } catch (ee) { }
+              // ignore clicks inside preview panel to avoid triggering global flush
+              try { if (ev.target && ev.target.closest && ev.target.closest('#bt-preview-panel')) return; } catch (e) { }
+              var t = ev.target;
+              for (var depth = 0; depth < 6 && t; depth++, t = t.parentElement) {
+                if (!t) break;
+                var v = (t.value || t.getAttribute && t.getAttribute('value') || '').toString().toLowerCase();
+                var txt = (t.innerText || t.textContent || '').toString().toLowerCase();
+                var id = (t.id || '').toString().toLowerCase();
+                var cls = (t.className || '').toString().toLowerCase();
+                var kws = ['preview', 'معاينة', 'post', 'نشر', 'submit', 'publish', 'save', 'send', 'ارسال'];
+                var matched = false;
+                for (var i = 0; i < kws.length; i++) { if (v.indexOf(kws[i]) !== -1 || txt.indexOf(kws[i]) !== -1 || id.indexOf(kws[i]) !== -1 || cls.indexOf(kws[i]) !== -1) { matched = true; break; } }
+                if (matched) {
+                  try { var bb2 = transformQuillToBBCode(quill); if (originalTextarea) originalTextarea.value = normalizeBlankLines(bb2); } catch (e) { try { if (originalTextarea) originalTextarea.value = quill.getText(); } catch (ee) { } }
+                  break;
+                }
+              }
+            } catch (e) { }
+          }, true);
+        }
+      } catch (e) { }
       // sync back to original textarea as HTML
+      // Normalize blank lines to avoid accumulating extra empty paragraphs
+      function normalizeBlankLines(s) {
+        if (typeof s !== 'string') return s;
+
+        // توحيد أنواع الأسطر الجديدة
+        let out = s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+        // تقليص أي 3+ أسطر فارغة إلى سطرين فقط
+        out = out.replace(/\n{3,}/g, '\n\n');
+
+        // إزالة الفراغات بين وسوم BBCode المتجاورة
+        out = out.replace(/\]\s*\n+\s*(?=\[)/g, ']\n');
+
+        // حذف الأسطر الفارغة في البداية
+        out = out.replace(/^\n+/, '');
+
+        // حذف الأسطر الفارغة في النهاية، مع ترك سطر واحد فقط
+        out = out.replace(/\n+$/, '\n');
+
+        return out;
+      }
+
       function transformQuillToBBCode(q) {
         var root = q.root;
-        function wrap(tagOpen, tagClose, txt) { return tagOpen + txt + tagClose; }
-        function attrStyle(ch, styleName) {
-          try { return (ch.style && ch.style[styleName]) || (ch.getAttribute && ch.getAttribute('style') && (function (s) { var m = s.match(new RegExp(styleName + '\\s*:\\s*([^;]+)')); return m ? m[1].trim() : null; })(ch.getAttribute('style'))); } catch (e) { return null; }
+
+        function wrap(tagOpen, tagClose, txt) {
+          return tagOpen + txt + tagClose;
         }
+
+        function attrStyle(ch, styleName) {
+          try {
+            return (ch.style && ch.style[styleName]) ||
+              (ch.getAttribute && ch.getAttribute('style') &&
+                (function (s) {
+                  var m = s.match(new RegExp(styleName + '\\s*:\\s*([^;]+)', 'i'));
+                  return m ? m[1].trim() : null;
+                })(ch.getAttribute('style')));
+          } catch (e) { return null; }
+        }
+
         function normalizeColor(val) {
           if (!val) return val;
           val = ('' + val).trim();
-          // rgb(a) -> hex
           var m = val.match(/rgba?\s*\(([^)]+)\)/i);
           if (m) {
             var parts = m[1].split(',').map(function (p) { return parseInt(p, 10) || 0; });
@@ -662,28 +994,24 @@
             function hex(n) { var h = n.toString(16); return h.length === 1 ? ('0' + h) : h; }
             return '#' + hex(Math.max(0, Math.min(255, r))) + hex(Math.max(0, Math.min(255, g))) + hex(Math.max(0, Math.min(255, b)));
           }
-          // strip spaces and return as-is (hex or named)
           return val.replace(/\s+/g, '');
         }
+
         function colorIsTooLight(val) {
           try {
             var h = normalizeColor(val);
             if (!h) return false;
-            // accept rgb(...) already normalized above; ensure hex
-            var hex = h;
-            var m = hex.match(/^#([0-9a-f]{3})$/i);
-            if (m) hex = '#' + m[1].split('').map(function (c) { return c + c; }).join('');
-            var mh = hex.match(/^#([0-9a-f]{6})$/i);
+            var m = h.match(/^#([0-9a-f]{3})$/i);
+            if (m) h = '#' + m[1].split('').map(function (c) { return c + c; }).join('');
+            var mh = h.match(/^#([0-9a-f]{6})$/i);
             if (!mh) return false;
             var int = parseInt(mh[1], 16);
-            var r = (int >> 16) & 255;
-            var g = (int >> 8) & 255;
-            var b = int & 255;
-            // relative luminance approximation
+            var r = (int >> 16) & 255, g = (int >> 8) & 255, b = int & 255;
             var lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-            return lum > 0.92; // very light (close to white)
+            return lum > 0.92;
           } catch (e) { return false; }
         }
+
         function walk(node) {
           var t = '';
           node.childNodes && Array.from(node.childNodes).forEach(function (ch) {
@@ -691,8 +1019,22 @@
               t += (ch.nodeValue || '');
             } else if (ch.tagName) {
               var tag = ch.tagName.toLowerCase();
-              // Inline and block mappings
-              if (tag === 'img') {
+
+              // --- إضافة دعم <sup>, <sub>, <tt>, <marquee>, <details> ---
+              if (tag === 'sup') {
+                t += '[sup]' + walk(ch) + '[/sup]';
+              } else if (tag === 'sub') {
+                t += '[sub]' + walk(ch) + '[/sub]';
+              } else if (tag === 'tt') {
+                t += '[tt]' + walk(ch) + '[/tt]';
+              } else if (tag === 'marquee') {
+                t += '[move]' + walk(ch) + '[/move]';
+              } else if (tag === 'details') {
+                t += '[spoiler]' + walk(ch) + '[/spoiler]';
+              }
+              // --- نهاية الإضافات ---
+
+              else if (tag === 'img') {
                 var src = ch.getAttribute('src') || '';
                 if (src) t += '[img]' + src + '[/img]';
               } else if (tag === 'br') {
@@ -711,8 +1053,23 @@
               } else if (tag === 'ol' || tag === 'ul') {
                 var isOl = tag === 'ol';
                 var items = Array.from(ch.querySelectorAll('li'));
-                var listItems = items.map(function (li) { return '[*]' + (walk(li) || ''); }).join('\n');
-                t += (isOl ? ('[list=1]\n' + listItems + '\n[/list]\n') : ('[list]\n' + listItems + '\n[/list]\n'));
+                var listItems = items.map(function (li) {
+                  return '[*]' + (walk(li) || '');
+                }).join('\n');
+
+                // هنا نضيف شرط إضافي: إذا كان الزر bullet → [list]، وإذا كان ordered → [list=1]
+                if (ch.getAttribute('class') && ch.getAttribute('class').includes('ql-list')) {
+                  var type = ch.getAttribute('value'); // يلتقط قيمة الزر
+                  if (type === 'bullet') {
+                    t += '[list]\n' + listItems + '\n[/list]\n';
+                  } else if (type === 'ordered') {
+                    t += '[list=1]\n' + listItems + '\n[/list]\n';
+                  }
+                } else {
+                  // fallback: حسب الوسم
+                  t += (isOl ? ('[list=1]\n' + listItems + '\n[/list]\n')
+                             : ('[list]\n' + listItems + '\n[/list]\n'));
+                }
               } else if (tag === 'li') {
                 t += walk(ch);
               } else if (tag === 'pre' || tag === 'code') {
@@ -720,36 +1077,36 @@
                 t += '[code]' + codeText + '[/code]\n';
               } else if (tag === 'blockquote') {
                 try {
-                  // prefer visible text (innerText) to capture pasted content and preserve line breaks
-                  var innerQ = (ch.innerText || ch.textContent || walk(ch) || '');
-                  innerQ = ('' + innerQ).replace(/\u00A0/g, ' ').trim();
-                  if ((innerQ || '').toString().trim()) {
-                    t += '[quote]' + innerQ + '[/quote]\n';
-                  } else {
-                    // skip empty blockquote
-                  }
+                  var innerQ = (ch.innerText || ch.textContent || walk(ch) || '').replace(/\u00A0/g, ' ').trim();
+                  if (innerQ) t += '[quote]' + innerQ + '[/quote]\n';
                 } catch (e) { }
               } else if (tag === 'a') {
                 var href = ch.getAttribute('href') || '';
                 var text = (walk(ch) || '');
-                if (href) t += '[url=' + href + ']' + (text || href) + '[/url]'; else t += text;
+                if (href.startsWith('mailto:')) {
+                  t += '[email=' + href.replace('mailto:', '') + ']' + (text || href.replace('mailto:', '')) + '[/email]';
+                } else if (href.includes('youtube.com/embed/')) {
+                  var ytId = href.split('youtube.com/embed/')[1].split('?')[0].split('&')[0];
+                  t += '[youtube]' + ytId + '[/youtube]';
+                } else if (href) {
+                  t += '[url=' + href + ']' + (text || href) + '[/url]';
+                } else {
+                  t += text;
+                }
               } else if (tag === 'p' || tag === 'div' || tag === 'td' || tag === 'th') {
-                // prefer textContent to decide emptiness so we don't drop paragraphs that use tags
-                var textOnly = (ch.textContent || ch.innerText || '').toString().replace(/&nbsp;|&#160;|\u00A0/g, '').replace(/[\u200B\uFEFF]/g, '').trim();
+                var textOnly = (ch.textContent || '').replace(/&nbsp;|&#160;|\u00A0/g, '').replace(/[\u200B\uFEFF]/g, '').trim();
                 var hasImg = ch.querySelector && ch.querySelector('img');
                 if (!hasImg && !textOnly) {
-                  t += '\n'; // Save the blank paragraph as two lines
+                  t += '\n';
                   return;
                 }
-                // detect alignment
-                var align = (ch.style && ch.style.textAlign) || (ch.getAttribute && (ch.getAttribute('class') || '').match(/ql-align-(\w+)/) && (ch.getAttribute('class').match(/ql-align-(\w+)/) || [])[1]) || null;
-                // detect block-level styles
+
+                var align = (ch.style && ch.style.textAlign) || null;
                 var blockColor = normalizeColor(attrStyle(ch, 'color'));
                 var blockSize = (attrStyle(ch, 'font-size') || '').toString();
                 var blockFont = (attrStyle(ch, 'font-family') || '').toString();
                 var content = (walk(ch) || '');
-                // (removed bgcolor handling -- background coloring not supported reliably on target forum)
-                // apply block-level wrappers (avoid adding [justify] tag since many BBCode variants don't support it)
+
                 if (blockFont) {
                   var simple = ('' + blockFont).split(',')[0].replace(/"|'/g, '').trim();
                   content = '[font=' + simple + ']' + content + '[/font]';
@@ -758,63 +1115,54 @@
                   var mblock = ('' + blockSize).match(/(\d+)/);
                   if (mblock) content = '[size=' + mblock[1] + 'pt]' + content + '[/size]';
                 }
-                if (blockColor) {
-                  if (!colorIsTooLight(blockColor)) {
-                    content = '[color=' + blockColor + ']' + content + '[/color]';
-                  }
+                if (blockColor && !colorIsTooLight(blockColor)) {
+                  content = '[color=' + blockColor + ']' + content + '[/color]';
                 }
-                if (align && align !== 'justify') {
-                  var map = { center: 'center', left: 'left' };
-                  if (map[align]) content = '[' + map[align] + ']' + content + '[/' + map[align] + ']';
+
+                // --- دعم المحاذاة ---
+                if (align === 'center') {
+                  content = '[center]' + content + '[/center]';
+                } else if (align === 'right') {
+                  content = '[right]' + content + '[/right]';
+                } else if (align === 'left') {
+                  content = '[left]' + content + '[/left]';
                 }
+
                 t += content + '\n';
               } else if (tag === 'strong' || tag === 'b') {
-                try {
-                  var innerText = (walk(ch) || '');
-                  // preserve inline styles present on the <strong> element (color, size, font)
-                  var st_color = attrStyle(ch, 'color');
-                  var st_size = attrStyle(ch, 'font-size');
-                  var st_font = attrStyle(ch, 'font-family');
-                  var res = '[b]' + innerText + '[/b]';
-                  try {
-                    if (st_color) {
-                      var nc = normalizeColor(st_color) || st_color;
-                      if (!colorIsTooLight(nc)) res = '[color=' + nc + ']' + res + '[/color]';
-                    }
-                  } catch (e) { }
-                  try {
-                    if (st_size) {
-                      var msz = ('' + st_size).match(/(\d+)/);
-                      if (msz) res = '[size=' + msz[1] + 'pt]' + res + '[/size]';
-                    }
-                  } catch (e) { }
-                  try {
-                    if (st_font) {
-                      var simpleF = ('' + st_font).split(',')[0].replace(/"|'/g, '').trim();
-                      if (simpleF) res = '[font=' + simpleF + ']' + res + '[/font]';
-                    }
-                  } catch (e) { }
-                  t += res;
-                } catch (e) { t += wrap('[b]', '[/b]', (walk(ch) || '')); }
+                var innerText = (walk(ch) || '');
+                var st_color = attrStyle(ch, 'color');
+                var st_size = attrStyle(ch, 'font-size');
+                var st_font = attrStyle(ch, 'font-family');
+                var res = '[b]' + innerText + '[/b]';
+                if (st_font) {
+                  var simpleF = ('' + st_font).split(',')[0].replace(/"|'/g, '').trim();
+                  res = '[font=' + simpleF + ']' + res + '[/font]';
+                }
+                if (st_size) {
+                  var msz = ('' + st_size).match(/(\d+)/);
+                  if (msz) res = '[size=' + msz[1] + 'pt]' + res + '[/size]';
+                }
+                if (st_color) {
+                  var nc = normalizeColor(st_color);
+                  if (!colorIsTooLight(nc)) res = '[color=' + nc + ']' + res + '[/color]';
+                }
+                t += res;
               } else if (tag === 'em' || tag === 'i') {
-                t += wrap('[i]', '[/i]', (walk(ch) || ''));
+                t += '[i]' + (walk(ch) || '') + '[/i]';
               } else if (tag === 'u') {
-                t += wrap('[u]', '[/u]', (walk(ch) || ''));
+                t += '[u]' + (walk(ch) || '') + '[/u]';
               } else if (tag === 's' || tag === 'strike' || tag === 'del') {
-                t += wrap('[s]', '[/s]', (walk(ch) || ''));
+                t += '[s]' + (walk(ch) || '') + '[/s]';
               } else if (tag === 'span') {
-                // handle inline styles like color, background and font-size
                 var txt = (walk(ch) || '');
                 var color = attrStyle(ch, 'color');
                 var fsize = attrStyle(ch, 'font-size');
                 var font = attrStyle(ch, 'font-family');
-                // simplify font-family to the first font name (before comma)
                 if (font) {
                   var simple = ('' + font).split(',')[0].replace(/"|'/g, '').trim();
-                  font = simple || font;
+                  txt = '[font=' + simple + ']' + txt + '[/font]';
                 }
-                // apply nesting: font -> size -> color -> text
-                if (font) txt = '[font=' + font + ']' + txt + '[/font]';
                 if (fsize) {
                   var m = ('' + fsize).match(/(\d+)/);
                   if (m) txt = '[size=' + m[1] + 'pt]' + txt + '[/size]';
@@ -825,65 +1173,104 @@
                 }
                 t += txt;
               } else {
-                // generic fallback: walk children
                 t += walk(ch);
               }
             }
           });
           return t;
         }
+
         var out = walk(root);
-        out = out.replace(/^[\s\n]+|[\s\n]+$/g, '');
-        // collapse redundant nested color/bg wrappers where values match
-        try {
-          out = out.replace(/\[bgcolor=([^\]]+)\]\s*\[color=([^\]]+)\]([\s\S]*?)\[\/color\]\s*\[\/bgcolor\]/gi, function (m, bg, col, inner) {
-            try {
-              var nb = normalizeColor(bg) || bg;
-              var nc = normalizeColor(col) || col;
-              if (nb && nc && ('' + nb).toLowerCase() === ('' + nc).toLowerCase()) {
-                return '[bgcolor=' + nb + ']' + inner + '[/bgcolor]';
-              }
-            } catch (e) { }
-            return m;
-          });
-          // also handle reverse order [color][bgcolor]...[/bgcolor][/color]
-          out = out.replace(/\[color=([^\]]+)\]\s*\[bgcolor=([^\]]+)\]([\s\S]*?)\[\/bgcolor\]\s*\[\/color\]/gi, function (m, col, bg, inner) {
-            try {
-              var nb = normalizeColor(bg) || bg;
-              var nc = normalizeColor(col) || col;
-              if (nb && nc && ('' + nb).toLowerCase() === ('' + nc).toLowerCase()) {
-                return '[bgcolor=' + nb + ']' + inner + '[/bgcolor]';
-              }
-            } catch (e) { }
-            return m;
-          });
-          // collapse duplicate nested color tags
-          out = out.replace(/\[color=([^\]]+)\]([\s\S]*?)\[\/color\]\s*\[color=[^\]]+\]([\s\S]*?)\[\/color\]/gi, function (m, a, b, c) { return '[color=' + normalizeColor(a) + ']' + (b + c) + '[/color]'; });
-        } catch (e) { }
-        // merge adjacent quote blocks into a single quote block (repeat until stable)
-        try {
-          var prevOut;
-          do {
-            prevOut = out;
-            out = out.replace(/\[quote\]([\s\S]*?)\[\/quote\]\s*\n\s*\[quote\]([\s\S]*?)\[\/quote\]/gi, function (m, a, b) {
-              return '[quote]' + a + '\n' + b + '[/quote]';
-            });
-          } while (out !== prevOut);
-        } catch (e) { }
-        // Remove any leftover [right] wrappers: they cause issues on target forum
-        try { out = out.replace(/\[right\]([\s\S]*?)\[\/right\]/gi, '$1'); } catch (e) { }
+        out = out.replace(/^[ \t]+|[ \t]+$/g, '');
+        out = out.replace(/\n{3,}/g, '\n\n'); // تقليل الفراغات الزائدة
+
         return out;
       }
-      quill.on('text-change', () => {
+      // Debounced local sync: compute BBCode and word count, but avoid writing
+      // to the real textarea on every change to prevent external scripts from
+      // reading transient states and re-loading them back into the editor.
+      (function () {
+        var _syncTimer = null;
+        var latestBB = '';
+        function computeAndStore() {
+          try {
+            latestBB = transformQuillToBBCode(quill);
+            const textContent = quill.getText();
+            const trimmed = (textContent || '').trim();
+            const words = trimmed.length > 0 ? trimmed.split(/\s+/).length : 0;
+            const wc = document.getElementById('quill-word-count');
+            if (wc) wc.innerText = `Words: ${words} | Chars: ${trimmed.length}`;
+          } catch (e) { }
+        }
+        quill.on('text-change', function () {
+          try {
+            if (_syncTimer) clearTimeout(_syncTimer);
+            _syncTimer = setTimeout(function () { computeAndStore(); }, 60);
+          } catch (e) { }
+        });
+
+        // Expose a flush method that writes the latest computed BBCode back
+        // to the original textarea (called on form submit or before page actions).
+        function flushSync() {
+          try {
+            // ensure latest is computed synchronously before flushing
+            if (_syncTimer) { clearTimeout(_syncTimer); computeAndStore(); }
+            if (typeof latestBB === 'string') {
+              try { originalTextarea.value = normalizeBlankLines(latestBB); } catch (e) { originalTextarea.value = latestBB; }
+            }
+          } catch (e) { }
+        }
+        // Attach flush to parent form submit so preview/publish will see up-to-date value
         try {
-          const bb = transformQuillToBBCode(quill);
-          originalTextarea.value = bb;
-          const textContent = quill.getText().trim();
-          const words = textContent.length > 0 ? textContent.split(/\s+/).length : 0;
-          const wc = document.getElementById('quill-word-count');
-          if (wc) wc.innerText = `Words: ${words} | Chars: ${textContent.length}`;
+          var parentForm = originalTextarea && originalTextarea.closest ? originalTextarea.closest('form') : null;
+          if (parentForm) {
+            parentForm.addEventListener('submit', function (ev) { try { flushSync(); } catch (e) { } });
+            // also attach to any submit buttons to flush before click-driven submits
+            var submits = parentForm.querySelectorAll('input[type=submit], button[type=submit]');
+            submits.forEach(function (btn) { btn.addEventListener('click', function () { try { flushSync(); } catch (e) { } }); });
+          }
+          // Also listen globally (capture phase) for preview/publish buttons that may live
+          // outside the form or trigger AJAX preview. Flush before their handlers run.
+          var possibleKeywords = ['preview', 'معاينة', 'post', 'نشر', 'submit', 'publish', 'save', 'send', 'ارسال'];
+          function shouldFlushForElement(el) {
+            try {
+              if (!el) return false;
+              var tag = (el.tagName || '').toLowerCase();
+              if (tag === 'input' || tag === 'button') {
+                var v = (el.value || el.getAttribute('value') || '').toString().toLowerCase();
+                if (v) {
+                  for (var k = 0; k < possibleKeywords.length; k++) if (v.indexOf(possibleKeywords[k]) !== -1) return true;
+                }
+              }
+              var txt = (el.innerText || el.textContent || '').toString().toLowerCase();
+              if (txt) {
+                for (var i = 0; i < possibleKeywords.length; i++) if (txt.indexOf(possibleKeywords[i]) !== -1) return true;
+              }
+              var id = (el.id || '').toLowerCase(); if (id) { for (var j = 0; j < possibleKeywords.length; j++) if (id.indexOf(possibleKeywords[j]) !== -1) return true; }
+              var cls = (el.className || '').toString().toLowerCase(); if (cls) { for (var m = 0; m < possibleKeywords.length; m++) if (cls.indexOf(possibleKeywords[m]) !== -1) return true; }
+            } catch (e) { }
+            return false;
+          }
+          function globalFlushHandler(ev) {
+            try {
+              // if editor not active, skip flushing to avoid overwriting user edits
+              try { if (!window.__bt_quill_editor_active) return; } catch (ee) { }
+              var t = ev.target;
+              // ascend a few levels to find meaningful button-like ancestor
+              for (var depth = 0; depth < 6 && t; depth++, t = t.parentElement) {
+                if (!t) break;
+                // if this ancestor is the parent form, flush
+                try { if (parentForm && parentForm.contains(t)) { flushSync(); return; } } catch (e) { }
+                if (shouldFlushForElement(t)) { flushSync(); return; }
+              }
+            } catch (e) { }
+          }
+          try { document.addEventListener('click', globalFlushHandler, true); document.addEventListener('mousedown', globalFlushHandler, true); } catch (e) { }
         } catch (e) { }
-      });
+
+        // Expose flush for external calls (debugging/tests)
+        try { window.__bt_quill_flush = flushSync; } catch (e) { }
+      })();
       // helper: convert simple BBCode to HTML for loading into Quill
       function bbcodeToHtml(bb) {
         if (!bb) return '';
@@ -973,7 +1360,10 @@
               paragraphs.push('<p>' + current.join('<br>') + '</p>');
               current = [];
             }
-            paragraphs.push('<p><br></p>'); // Represent empty line as <p><br></p>
+            // Only add an explicit empty paragraph if there's non-empty content following
+            var j = i + 1; var hasAhead = false;
+            while (j < lines.length) { if (lines[j].trim() !== '') { hasAhead = true; break; } j++; }
+            if (hasAhead) paragraphs.push('<p><br></p>'); // Represent empty line as <p><br></p>
           } else {
             current.push(lines[i]);
           }
@@ -1049,17 +1439,57 @@
     html = html.replace(/<br\s*\/?>/g, '\n');
     // Remove any remaining HTML tags
     html = html.replace(/<\/?[^>]+(>|$)/g, "");
-    return html.trim();
+    // Preserve leading/trailing blank lines; only trim trailing spaces/tabs
+    return html.replace(/[ \t]+$/g, '');
   }
-  // Expose initializer for the content script to call after injecting Quill
+  // Ensure initQuillEditor is exposed
   window.initQuillEditor = initQuillEditor;
+
+  // Ensure buttons exist before attaching handlers
+  (function quillToggleUI() {
+    const textarea = document.querySelector('textarea[name="message"]');
+    if (!textarea) return;
+
+    const btnEnable = document.getElementById('bt-quill-enable');
+    const btnDisable = document.getElementById('bt-quill-disable');
+    if (!btnEnable || !btnDisable) return;
+
+    // Enable button handler with cleanup
+    btnEnable.addEventListener('click', function (event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      try { chrome.storage.local.set({ quillEnabled: true }); } catch (e) { }
+
+      try { if (window.initQuillEditor) window.initQuillEditor(); } catch (e) { }
+
+      try {
+        const ta = document.querySelector('textarea[name="message"]');
+        if (ta) ta.value = normalizeBlankLines(ta.value).replace(/\n+$/, '');
+      } catch (e) { }
+
+      try { if (typeof updateButtons === 'function') updateButtons(true); } catch (e) { }
+    });
+
+    // Disable button handler (existing)
+    btnDisable.addEventListener('click', function (event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      try { chrome.storage.local.set({ quillEnabled: false }); } catch (e) { }
+      try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
+      try { if (typeof updateButtons === 'function') updateButtons(false); } catch (e) { }
+    });
+  })();
+
   // Expose destroy so content script can disable/remove the editor
   window.destroyQuillEditor = function () {
     try {
-      // remove global active class so future toolbars aren't hidden, then restore any specific toolbars
       try { document.documentElement.classList.remove('bt-editor-active'); } catch (e) { }
       try { delete window.__bt_quill_editor_active; } catch (e) { }
-      // restore any external emoji toolbars hidden by init
+
       try {
         var els = document.querySelectorAll('.bt-emoji-toolbar[data-bt-hidden-by-quill]');
         els.forEach(function (el) {
@@ -1071,31 +1501,47 @@
           } catch (e) { }
         });
       } catch (e) { }
+
       const wrapper = document.getElementById('quill-wrapper');
       const originalTextarea = document.querySelector('textarea[name="message"]');
-      // Ensure we copy the current Quill content back to the original textarea
+
       try {
         if (window.__bt_quill_instance && typeof quillToBBCode === 'function' && originalTextarea) {
           try {
+            let content = quillToBBCode(window.__bt_quill_instance);
+            content = normalizeBlankLines(content);
+            content = content.replace(/\n+$/, '');
+            originalTextarea.value = content;
+          } catch (e) {
             originalTextarea.value = quillToBBCode(window.__bt_quill_instance);
-          } catch (e) { }
+          }
         }
       } catch (e) { }
+
       if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+
       if (originalTextarea) {
         originalTextarea.style.display = '';
         try {
-          // Ensure the textarea shows the text cursor and receives focus
           originalTextarea.style.cursor = 'text';
           originalTextarea.classList.add('editor');
           originalTextarea.focus();
-          // Move caret to end
-          try { originalTextarea.setSelectionRange(originalTextarea.value.length, originalTextarea.value.length); } catch (e) { }
+          try {
+            originalTextarea.setSelectionRange(originalTextarea.value.length, originalTextarea.value.length);
+          } catch (e) { }
         } catch (e) { }
       }
-      try { if (window.__bt_quill_instance && typeof window.__bt_quill_instance.disable === 'function') window.__bt_quill_instance.disable(); } catch (e) { }
+
+      try {
+        if (window.__bt_quill_instance && typeof window.__bt_quill_instance.disable === 'function')
+          window.__bt_quill_instance.disable();
+      } catch (e) { }
+
       try { delete window.__bt_quill_instance; } catch (e) { }
       try { delete window.__bt_quill_initialized; } catch (e) { }
-    } catch (err) { console.warn('destroyQuillEditor error', err); }
+    } catch (err) {
+      console.warn('destroyQuillEditor error', err);
+    }
   };
+
 })();

@@ -175,8 +175,14 @@
             btnDisable.textContent = 'Disable Editor';
             btnDisable.style.cursor = 'pointer';
 
+            const btnDebug = document.createElement('button');
+            btnDebug.id = 'bt-quill-debug';
+            btnDebug.textContent = 'Debug: Show textarea';
+            btnDebug.style.cursor = 'pointer';
+
             container.appendChild(btnEnable);
             container.appendChild(btnDisable);
+            container.appendChild(btnDebug);
 
             textarea.parentNode.insertBefore(container, textarea);
 
@@ -203,6 +209,18 @@
                 } catch (e) {
                     // ignore storage errors
                 }
+                // Clean textarea value before initializing editor to avoid accumulated blank lines
+                try {
+                    const ta = document.querySelector('textarea[name="message"]');
+                    if (ta && typeof ta.value === 'string') {
+                        let v = ta.value.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                        v = v.replace(/\n{3,}/g, '\n\n');
+                        v = v.replace(/\]\s*\n+\s*(?=\[)/g, ']\n');
+                        v = v.replace(/^\n+/, '');
+                        v = v.replace(/\n+$/, '');
+                        ta.value = v;
+                    }
+                } catch (e) { }
                 // call init immediately (with retries) so UI responds even if storage callback won't run
                 (function callInit(retries) {
                     try {
@@ -219,10 +237,28 @@
                     event.stopPropagation();
                 }
                 try {
+                    const ta = document.querySelector('textarea[name="message"]');
+                    console.log('BT DEBUG: textarea value on disable:', ta ? ta.value : '(no textarea)');
+                } catch (e) { }
+                try {
                     chrome.storage.local.set({ quillEnabled: false });
                 } catch (e) { }
                 try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
                 updateButtons(false);
+            });
+
+            // Debug button prints textarea content to the console
+            btnDebug.addEventListener('click', function (event) {
+                if (event) { event.preventDefault(); event.stopPropagation(); }
+                try {
+                    const ta = document.querySelector('textarea[name="message"]');
+                    if (ta) {
+                        console.log('BT DEBUG: textarea current value:\n', ta.value);
+                        try { alert('Textarea length: ' + ta.value.length + '\n(see console for full content)'); } catch (e) { }
+                    } else {
+                        console.log('BT DEBUG: textarea not found');
+                    }
+                } catch (e) { console.error('BT DEBUG error', e); }
             });
 
             // initialize state from storage

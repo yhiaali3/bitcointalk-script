@@ -1,257 +1,555 @@
 @namespace html url(http://www.w3.org/1999/xhtml);
 @namespace xul url(http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul);
 
-/* :::::::: المتغيرات الأساسية لضمان التناسق :::::::: */
-:root {
-    --bg-main: #0a0f14;
-    --bg-surface: #161e26;
-    --bg-input: #1c252e;
-    --accent-primary: #f59e0b;
-    /* ذهبي بيتكوين */
-    --accent-secondary: #0ea5e9;
-    /* أزرق سماوي */
-    --border-vivid: #334155;
-    /* حدود واضحة */
-    --border-highlight: #f59e0b;
-    --text-primary: #f1f5f9;
-    --text-dim: #94a3b8;
-    --quote-bg: #1e293b;
-    --success: #10b981;
-}
-
-/* 1. إعدادات المتصفح والخلفية الأساسية */
-browser[type="content-primary"],
+/* ========== الخلفية والنص العام ========== */
 html,
 body {
-    background: var(--bg-main) !important;
-    color: var(--text-primary) !important;
+    background: #0a0f14 !important;
+    color: #f1f5f9 !important;
     font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
     line-height: 1.6 !important;
 }
 
-/* 2. منطق معالجة الصور (مقتبس من ملفك الأصلي مع تحسين) */
-*:not(:empty):not([onclick*="open"]):not(span):not([class*="stars"]):not([id*="stars"]):not([id="rating"]):not([class="rating"]):not([class*="prite"]):not([id*="prite"]):not([id*="lbImage"]) {
-    background-image: none !important;
+/* ========== حاويات المنتدى الأساسية ========== */
+#wrapper,
+#header,
+#footer,
+#footerarea,
+.windowbg,
+.windowbg2,
+.roundframe,
+.tborder,
+.table_grid,
+.bordercolor,
+.information,
+.generic_list_wrapper {
+    background: #161e26 !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
 }
 
-/* 3. الحدود والحاويات (جعلها أوضح وأكثر حدة) */
-div[id],
-[class*="content"],
-[class*="container"] {
-    background-color: transparent !important;
-    border-color: var(--border-vivid) !important;
+.windowbg2 {
+    background: #1c252e !important;
 }
 
-/* الحاويات الرئيسية العميقة */
-html:root>body>*>*>*>*:not(input):not([onclick])>div:not(:empty):not([id]) {
-    background: var(--bg-surface) !important;
-    border: 2px solid var(--border-vivid) !important;
-    /* حدود سميكة وواضحة */
-    border-radius: 8px !important;
-    padding: 15px !important;
-    margin-bottom: 10px !important;
+/* ========== عناوين الفئات والمواضيع ========== */
+.catbg,
+.catbg3,
+.titlebg,
+.titlebg2,
+.headerpadding {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
 }
 
-/* 4. العناوين (H1 - H6) بتصميم عصري وحدود قوية */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-    background: linear-gradient(90deg, var(--bg-surface), transparent) !important;
-    border-right: 4px solid var(--accent-primary) !important;
-    /* حد جانبي قوي */
-    border-bottom: 1px solid var(--border-vivid) !important;
-    padding: 12px 15px !important;
-    border-radius: 0 6px 6px 0 !important;
-    margin: 20px 0 10px 0 !important;
+/* ========== الجداول ========== */
+table {
+    color: #f1f5f9 !important;
 }
 
-h1,
-h2 {
-    color: var(--accent-primary) !important;
-    font-size: 1.5em !important;
+table,
+tr,
+td,
+th {
+    border-color: #334155 !important;
 }
 
-h3,
-h4 {
-    color: var(--accent-secondary) !important;
-    font-size: 1.2em !important;
+tr:hover td,
+tr.selected td,
+tr.highlighted td {
+    background: rgba(30, 41, 59, 0.6) !important;
+    color: #f1f5f9 !important;
 }
 
-/* 5. النصوص الخاصة والاقتباسات (Quotes & Code) */
-mark,
-code,
-pre,
+/* ========== محتوى المشاركات ========== */
+.post,
+.postarea,
+.inner,
+.content,
+.msg {
+    color: #f1f5f9 !important;
+}
+
+/* ========== الاقتباسات ========== */
 blockquote,
-[class*="quote"],
-td[style*="inset"][class="alt2"] {
-    background-color: var(--quote-bg) !important;
-    color: #fff;
-    border: 1px solid var(--border-vivid) !important;
-    border-right: 5px solid var(--accent-primary) !important;
+.quote,
+pre,
+code,
+.code {
+    background: #1e293b !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+    border-right: 5px solid #f59e0b !important;
     padding: 15px !important;
     border-radius: 6px !important;
-    display: block;
+    display: block !important;
 }
 
-abbr,
-progress,
-time,
-label,
-.date {
-    color: var(--accent-secondary) !important;
-    font-weight: 600 !important;
+/* ========== ترويسة الاقتباس (Quote Header) ========== */
+#main_content_section .quoteheader,
+#wrapper .quoteheader,
+body .quoteheader,
+body .bbc_quote_header {
+    background-color: #161e26 !important;
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+    padding: 4px 8px !important;
+    font-size: 0.9em !important;
+    font-weight: bold !important;
+    margin: 0 0 4px 0 !important;
+    border-radius: 4px 4px 0 0 !important;
 }
 
-/* 6. الجداول (أكثر وضوحاً) */
-table {
-    background-color: var(--bg-surface) !important;
-    border: 2px solid var(--border-vivid) !important;
-    border-collapse: separate !important;
-    border-spacing: 0 !important;
-    width: 100% !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
+#main_content_section .quoteheader *,
+#wrapper .quoteheader *,
+body .quoteheader *,
+body .bbc_quote_header * {
+    color: #f1f5f9 !important;
+    background: transparent !important;
 }
 
-th,
-caption {
-    background-color: #1e293b !important;
-    color: var(--accent-primary) !important;
-    border-bottom: 2px solid var(--border-vivid) !important;
-    padding: 12px !important;
+/* ========== النصوص الثانوية ========== */
+small,
+.smalltext,
+.description,
+.pagelinks,
+.navigate_section {
+    color: #94a3b8 !important;
 }
 
-td {
-    border: 1px solid var(--border-vivid) !important;
-    padding: 10px !important;
+/* ========== الروابط ========== */
+a,
+a:visited {
+    color: #0ea5e9 !important;
+    text-decoration: none !important;
 }
 
-/* 7. الأزرار والمدخلات (Form Elements) */
-input:not([type="checkbox"]):not([type="radio"]),
-button,
+a:hover,
+a:focus {
+    color: #f59e0b !important;
+    text-decoration: underline !important;
+}
+
+/* ========== الحقول والمدخلات ========== */
+input,
 textarea,
-select {
-    background: var(--bg-input) !important;
-    color: var(--text-primary) !important;
-    border: 2px solid var(--border-vivid) !important;
-    /* حدود أوضح */
+select,
+button {
+    background: #1c252e !important;
+    color: #f1f5f9 !important;
+    border: 2px solid #334155 !important;
     border-radius: 6px !important;
     padding: 8px 12px !important;
-    transition: all 0.2s ease !important;
-    appearance: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #94a3b8 !important;
 }
 
 input:focus,
 textarea:focus {
-    border-color: var(--accent-secondary) !important;
+    border-color: #0ea5e9 !important;
     outline: none !important;
     box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2) !important;
 }
 
-/* أزرار الأكشن الرئيسية */
-html:root input[type="button"],
-html:root input[type="submit"],
-html:root button {
-    background: var(--accent-primary) !important;
-    color: #000 !important;
-    font-weight: 800 !important;
-    border: 2px solid #fff !important;
-    cursor: pointer !important;
-}
-
-html:root button:hover {
-    filter: brightness(1.1) !important;
-    transform: translateY(-1px) !important;
-}
-
-/* 8. الروابط والتفاعل */
-a:link,
-a:link *:not(img) {
-    color: var(--accent-secondary) !important;
+/* ========== الأزرار العامة ========== */
+.button_strip a,
+#moderationbuttons a,
+#topic_header a {
+    display: inline-block !important;
+    background: #1c252e !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    margin: 2px 4px 2px 0 !important;
     text-decoration: none !important;
-    border-bottom: 1px solid transparent !important;
+    font-weight: bold !important;
+    color: #f1f5f9 !important;
 }
 
-a:hover {
-    color: var(--accent-primary) !important;
-    border-bottom: 1px solid var(--accent-primary) !important;
+.button_strip a:hover,
+#moderationbuttons a:hover,
+#topic_header a:hover {
+    background: #2a3245 !important;
+    border-color: #334155 !important;
+    color: #ffffff !important;
 }
 
-/* العناصر القابلة للضغط (onclick) مقتبس من ملفك */
-[onclick],
-[ondblclick],
-[onmousedown] {
-    color: var(--accent-primary) !important;
-    cursor: pointer !important;
-    text-decoration: underline dashed !important;
+/* ========== شريط التنقل العلوي ========== */
+#main_menu {
+    background: #1e293b !important;
+    border-top: 1px solid #334155 !important;
+    border-bottom: 1px solid #334155 !important;
 }
 
-/* 9. القوائم والمنبثقات (Menus & Popups) */
-nav,
-menu,
-[class*="open"],
-[id*="Dropdown"],
-[class*="popup"],
-[class*="note"] {
-    background-color: var(--bg-surface) !important;
-    border: 2px solid var(--accent-primary) !important;
-    /* حدود ذهبية للمنبثقات */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+#menu_nav>li>a {
+    background: transparent !important;
+    color: #f1f5f9 !important;
+    border-color: #334155 !important;
 }
 
-/* 10. التنسيق الشامل (Universal Styles) */
-* {
-    border-color: var(--border-vivid) !important;
-    outline-color: var(--accent-primary) !important;
-    text-shadow: none !important;
+#menu_nav>li>a:hover,
+#menu_nav>li>a:focus {
+    background: rgba(14, 165, 233, 0.15) !important;
+    color: #a0c8ff !important;
 }
 
-/* الصور */
+#menu_nav>li>a.active {
+    background: rgba(14, 165, 233, 0.25) !important;
+    color: #0ea5e9 !important;
+}
+
+#menu_nav li ul {
+    background: #161e26 !important;
+    border: 1px solid #334155 !important;
+}
+
+#menu_nav li ul li a {
+    background: transparent !important;
+    color: #f1f5f9 !important;
+}
+
+#menu_nav li ul li a:hover {
+    background: rgba(14, 165, 233, 0.15) !important;
+    color: #a0c8ff !important;
+}
+
+/* ========== عناصر أخرى ========== */
+hr {
+    border: 0 !important;
+    border-top: 1px solid #334155 !important;
+}
+
 img {
     opacity: 0.9 !important;
-    border: 1px solid var(--border-vivid) !important;
+    border: 1px solid #334155 !important;
     border-radius: 6px !important;
 }
 
 img:hover {
     opacity: 1 !important;
-    border-color: var(--accent-primary) !important;
+    border-color: #f59e0b !important;
 }
 
-/* التحديد (Selection) */
-::selection {
-    background-color: var(--accent-primary) !important;
-    color: #000 !important;
+/* ========== التذييل ========== */
+#footer_section div.frame {
+    background: #161e26 !important;
+    border: 1px solid #334155 !important;
+    padding: 0 60px 0 0 !important;
 }
 
-/* التواقيع (Signatures) */
-.signature {
-    border-top: 2px dashed var(--border-vivid) !important;
-    margin-top: 20px !important;
-    opacity: 0.7 !important;
+/* ========== المحتوى الرئيسي ========== */
+#content_section,
+#content_section div.frame {
+    background: #161e26 !important;
+    border: 1px solid #334155 !important;
+    padding-left: 20px !important;
 }
 
-body,
-td,
-th,
-tr {
-    color: #89b7f3;
-    font-size: 13px;
-    font-family: verdana, sans-serif;
+.description,
+.description_board,
+.plainbox {
+    padding: 0.5em 1em;
+    font-size: 0.9em;
+    line-height: 1.4em;
+    border: 1px solid #334155;
+    background: #1c252e !important;
+    margin: 0.2em 1px 1em 1px;
 }
 
-.nav,
-.nav:link,
-.nav:visited {
-    color: #e0e0ff;
-    text-decoration: none;
+/* ========== عناصر النص (عناوين، أسماء، إلخ) ========== */
+.subject a,
+.subject a:visited,
+.subject a:hover {
+    color: #f1f5f9 !important;
+    text-decoration: none !important;
 }
 
-html.bt-theme-2 * {
-    border-color: #000000 !important;
-    outline-color: var(--accent-primary) !important;
-    text-shadow: none !important;
+.new,
+.star {
+    color: #0ea5e9 !important;
+    font-weight: bold;
+}
+
+.byuser,
+.postinfo,
+.posted_by,
+.poster_name {
+    color: #94a3b8 !important;
+}
+
+.navigate_section a,
+.navigate_section a:visited,
+.navigate_section a:hover {
+    color: #94a3b8 !important;
+}
+
+.icon,
+.fa,
+.svg-icon {
+    fill: #94a3b8 !important;
+    color: #94a3b8 !important;
+}
+
+/* ========== Advanced Editor ========== */
+
+/* حاوية المحرر */
+div.ql-container.ql-snow {
+    background-color: #161e26 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 6px !important;
+}
+
+/* مساحة الكتابة */
+div.ql-editor {
+    background-color: #0a0f14 !important;
+    color: #f1f5f9 !important;
+    border: none !important;
+    padding: 14px 16px !important;
+    line-height: 1.6 !important;
+    font-size: 17px !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    min-height: 120px !important;
+}
+
+.ql-editor.ql-blank::before {
+    color: #94a3b8 !important;
+    font-style: italic !important;
+}
+
+/* شريط الأدوات */
+div.ql-toolbar.ql-snow {
+    background-color: #1e293b !important;
+    border: 1px solid #334155 !important;
+    border-bottom: none !important;
+    border-radius: 6px 6px 0 0 !important;
+    padding: 6px !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button {
+    background: transparent !important;
+    border: none !important;
+    padding: 4px 6px !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 28px !important;
+    height: 28px !important;
+    transition: background 0.2s ease !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button svg,
+div.ql-toolbar.ql-snow .ql-formats button svg * {
+    fill: #f1f5f9 !important;
+    stroke: #f1f5f9 !important;
+    width: 16px !important;
+    height: 16px !important;
+    filter: brightness(1.1) contrast(1.2) !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button:hover {
+    background: rgba(14, 165, 233, 0.15) !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button:hover svg,
+div.ql-toolbar.ql-snow .ql-formats button:hover svg * {
+    fill: #a0c8ff !important;
+    stroke: #a0c8ff !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button.ql-active {
+    background: rgba(14, 165, 233, 0.25) !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats button.ql-active svg,
+div.ql-toolbar.ql-snow .ql-formats button.ql-active svg * {
+    fill: #0ea5e9 !important;
+    stroke: #0ea5e9 !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats {
+    margin-right: 8px !important;
+    border-right: 1px solid #334155 !important;
+    padding-right: 8px !important;
+}
+
+div.ql-toolbar.ql-snow .ql-formats:last-child {
+    border-right: none !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* القوائم المنسدلة في المحرر */
+div.ql-toolbar.ql-snow .ql-picker .ql-picker-label {
+    color: #f1f5f9 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+}
+
+div.ql-toolbar.ql-snow .ql-picker .ql-picker-options {
+    background: #161e26 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 4px !important;
+    color: #f1f5f9 !important;
+}
+
+div.ql-toolbar.ql-snow .ql-picker .ql-picker-item:hover {
+    background: rgba(14, 165, 233, 0.15) !important;
+    color: #a0c8ff !important;
+}
+
+/* ========== Font Sizes (كما طلبت سابقًا) ========== */
+html.bt-theme-3 .post,
+html.bt-theme-3 .signature,
+html.bt-theme-3 .smalltext {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+html.bt-theme-3 #bitcointalk-advanced-editor .ql-editor,
+html.bt-theme-3 textarea[name="message"] {
+    font-size: 17px !important;
+    line-height: 1.6 !important;
+}
+
+html.bt-theme-3 blockquote,
+html.bt-theme-3 .quote,
+html.bt-theme-3 [class*="quote"],
+html.bt-theme-3 .bbc_standard_quote {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+}
+
+/* ======== فواصل ناعمة بين صفوف الجدول ======== */
+
+/* جدول المواضيع */
+table.table_grid {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+    background: transparent !important;
+}
+
+/* صفوف الجدول */
+table.table_grid tr {
+    background: #14171e !important;
+    /* خلفية داكنة */
+    border-bottom: 1px solid #2a313f !important;
+    /* حدود ناعمة بين الصفوف */
+    transition: background 0.2s ease !important;
+}
+
+/* عند الهوفر */
+table.table_grid tr:hover {
+    background: #181b25 !important;
+    border-bottom: 1px solid #3a4052 !important;
+}
+
+/* الخلايا */
+table.table_grid td,
+table.table_grid th {
+    padding: 12px 16px !important;
+    border: none !important;
+    vertical-align: top !important;
+}
+
+/* عناوين الأعمدة */
+table.table_grid thead th {
+    background: #1a1f2b !important;
+    color: #f1f5f9 !important;
+    font-weight: bold !important;
+    border-bottom: 2px solid #334155 !important;
+    padding: 12px 16px !important;
+}
+
+/* إذا كان هناك فئة مثل .windowbg أو .windowbg2 */
+.windowbg,
+.windowbg2 {
+    background: #14171e !important;
+    border-bottom: 1px solid #2a313f !important;
+}
+
+.windowbg2 {
+    background: #181b25 !important;
+}
+
+.windowbg:hover,
+.windowbg2:hover {
+    background: #1c252e !important;
+    border-bottom: 1px solid #3a4052 !important;
+}
+
+#advanced-toolbar .ql-formats button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor !important;
+}
+
+#advanced-toolbar .ql-formats {
+    padding: 5px 6px;
+    margin-right: 2px;
+    border-right: 1px solid #d0d0d0;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    background: #2a313f;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+
+.ql-snow .ql-stroke {
+    fill: none;
+    stroke: #080808;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+}
+
+.ql-snow .ql-fill,
+.ql-snow .ql-stroke.ql-fill {
+    fill: #080808;
+}
+
+/* Make image and toggle buttons have a white background without changing other icons */
+/* Target only the image upload button and custom toolbar buttons (safe selectors). */
+#advanced-toolbar button.ql-image,
+#advanced-toolbar .custom-tool-button.toggle,
+#advanced-toolbar .custom-tool-button.btn-toggle,
+#advanced-toolbar .custom-tool-button#btn-toggle {
+    background-color: #ffffff !important;
+    border-color: #ddd !important;
+    color: inherit !important;
+    /* don't force icon color */
+}
+
+/* ======== تحسين وضوح أيقونات شريط المحرر ======== */
+
+#advanced-toolbar .ql-formats button {
+    padding: 5px 6px !important;
+    margin-right: 2px !important;
+    border-right: 1px solid #111111 !important;
+    display: flex !important;
+    gap: 4px !important;
+    align-items: center !important;
+
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    border-radius: 4px !important;
+}
+
+#advanced-toolbar .ql-formats button svg,
+#advanced-toolbar .ql-formats button svg * {
+    fill: #070707 !important;
+    stroke: #ffffff !important;
+    width: 18px !important;
+    height: 18px !important;
+    filter: brightness(1.1) contrast(1.2) drop-shadow(0 0 1px rgba(0, 0, 0, 0.3)) !important;
+}
+
+#advanced-toolbar .ql-formats button svg path {
+    stroke-width: 1.5 !important;
 }

@@ -21,9 +21,9 @@ body>.tborder,
 
 /* Quote header */
 .quoteheader {
-    background-color: #f0f0f0 !important;
+    background-color: #f0f0f0 !;
     /* Light gray background */
-    border: 1px solid #ccc !important;
+    border: 1px solid #ccc !;
     /* Light border */
     padding: 4px;
     font-weight: bold;
@@ -31,9 +31,9 @@ body>.tborder,
 
 /* Quote block */
 blockquote {
-    background-color: #fafafa !important;
+    background-color: #fafafa !;
     /* Very light gray background */
-    border: 1px solid #ddd !important;
+    border: 1px solid #ddd !;
     /* Subtle border */
     padding: 6px;
     margin: 4px 0;

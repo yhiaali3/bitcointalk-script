@@ -101,7 +101,7 @@
     const newValue = v.slice(0, start) + replacement + v.slice(end);
     const newPos = start + replacement.length;
     el.value = newValue;
-    try { el.setSelectionRange(newPos, newPos); } catch (e) {}
+    try { el.setSelectionRange(newPos, newPos); } catch (e) { }
     el.dispatchEvent(new Event('input', { bubbles: true }));
   }
 
@@ -201,7 +201,12 @@
     nodes.forEach(el => {
       try {
         if ((el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.offsetWidth && el.offsetWidth < 120) return;
-      } catch (e) {}
+        // Don't attach to Quill editor elements to avoid interfering with Quill's paste/clipboard handling
+        try {
+          if (window.__bt_quill_editor_active) return;
+          if (el.closest && (el.closest('#bitcointalk-advanced-editor') || el.closest('#quill-wrapper') || el.closest('.ql-editor'))) return;
+        } catch (err) { }
+      } catch (e) { }
       attachListenersTo(el, mapGetter);
     });
   }
@@ -235,7 +240,7 @@
       if (!enabled) {
         // disconnect observer if present
         if (window.__bt_emoticon_modes_mu) {
-          try { window.__bt_emoticon_modes_mu.disconnect(); } catch (e) {}
+          try { window.__bt_emoticon_modes_mu.disconnect(); } catch (e) { }
           window.__bt_emoticon_modes_mu = null;
         }
         return;
@@ -273,6 +278,8 @@
         const form = e.target;
         const tnodes = form.querySelectorAll('textarea, input[type="text"], [contenteditable="true"]');
         tnodes.forEach(node => {
+          // Skip nodes that belong to Quill editor
+          try { if (window.__bt_quill_editor_active && (node.closest && (node.closest('#bitcointalk-advanced-editor') || node.closest('#quill-wrapper') || node.closest('.ql-editor')))) return; } catch (err) { }
           if (node.tagName === 'TEXTAREA' || (node.tagName === 'INPUT' && node.type === 'text')) {
             let v = node.value;
             Object.keys(map).forEach(k => {
