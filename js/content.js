@@ -1433,8 +1433,22 @@ chrome.storage.onChanged.addListener((changes, area) => {
                     s2.src = initUrl;
                     s2.async = false;
                     s2.onload = function () {
-                        try { if (window.initQuillEditor) window.initQuillEditor(); } catch (e) { }
+                      try {
+                        const ta = document.querySelector('textarea[name="message"]');
+                        if (!ta) return;
+
+                        chrome.storage.local.get('quillEnabled', (res) => {
+                          const enabled = !!(res && res.quillEnabled);
+                          if (enabled && typeof window.initQuillEditor === 'function') {
+                            window.initQuillEditor();
+                          } else {
+                            // make sure we don't accidentally show it
+                            if (typeof window.destroyQuillEditor === 'function') window.destroyQuillEditor();
+                          }
+                        });
+                      } catch (e) { }
                     };
+
                     (document.documentElement || document.head || document.body).appendChild(s2);
                 } catch (e) { console.warn('quill init inject failed', e); }
             };
