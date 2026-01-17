@@ -717,23 +717,59 @@
             try { imgBtn.setAttribute('title', 'Insert Image'); imgBtn.setAttribute('aria-label', 'Insert Image'); } catch (e) { }
           }
         } catch (e) { }
-        // ensure align buttons reliably apply their intended alignment (override any conflicting handlers)
+        // 💡 تعديل أزرار المحاذاة لاستخدام BBCode مباشرةً
         try {
           var alignBtns = document.querySelectorAll('.ql-align');
           alignBtns.forEach(function (btn) {
             try {
               var val = btn.getAttribute('value');
               if (!val) return;
+
               btn.addEventListener('click', function (e) {
-                try {
-                  e.preventDefault(); e.stopPropagation();
-                  var sel = quill.getSelection() || { index: quill.getLength(), length: 0 };
-                  // Quill uses `false` (or null) to represent the default/left alignment.
-                  var applyVal = (val === 'left') ? false : val;
-                  quill.format('align', applyVal);
-                  try { quill.setSelection(sel.index, sel.length || 0); } catch (se) { }
+                e.preventDefault();
+                e.stopPropagation();
+
+                var range = quill.getSelection();
+                if (!range) return;
+
+                // إذا لم يكن هناك تحديد، لا نفعل شيئًا
+                if (range.length === 0) {
                   quill.focus();
-                } catch (err) { }
+                  return;
+                }
+
+                // الحصول على النص المحدد
+                var selectedText = quill.getText(range.index, range.length);
+
+                // تحديد الأوامر بناءً على القيمة
+                var openTag = '';
+                var closeTag = '';
+
+                if (val === 'right') {
+                  openTag = '[right]';
+                  closeTag = '[/right]';
+                } else if (val === 'center') {
+                  openTag = '[center]';
+                  closeTag = '[/center]';
+                } else if (val === 'justify') {
+                  openTag = '[justify]';
+                  closeTag = '[/justify]';
+                } else {
+                  // left - لا حاجة لأوامر
+                  quill.focus();
+                  return;
+                }
+
+                // حذف النص المحدد
+                quill.deleteText(range.index, range.length);
+
+                // إدراج النص المحاط بالأوامر
+                var newText = openTag + selectedText + closeTag;
+                quill.insertText(range.index, newText, 'user');
+
+                // وضع المؤشر بعد النص الجديد
+                quill.setSelection(range.index + newText.length, 0);
+                quill.focus();
               });
             } catch (inner) { }
           });
@@ -1075,16 +1111,19 @@
                   content = '[color=' + blockColor + ']' + content + '[/color]';
                 }
 
-                // --- دعم المحاذاة ---
+                // ✅ إضافة دعم المحاذاة
                 if (align === 'center') {
                   content = '[center]' + content + '[/center]';
                 } else if (align === 'right') {
                   content = '[right]' + content + '[/right]';
+                } else if (align === 'justify') {
+                  content = '[justify]' + content + '[/justify]';
                 } else if (align === 'left') {
                   content = '[left]' + content + '[/left]';
                 }
 
                 t += content + '\n';
+
               } else if (tag === 'strong' || tag === 'b') {
                 var innerText = (walk(ch) || '');
                 var st_color = attrStyle(ch, 'color');
