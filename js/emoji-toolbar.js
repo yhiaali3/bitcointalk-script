@@ -7,6 +7,69 @@
 
 (function () {
   if (window.__bt_emoji_toolbar_installed) return;
+
+  function isTrustPage() {
+    try {
+      var h = location.href || '';
+      var p = location.pathname || '';
+      if (/action=trust(?:[;?&]|$)/i.test(h)) return true;
+      if (/\/trust(?:[/?#]|$)/i.test(p)) return true;
+    } catch (e) { }
+    return false;
+  }
+
+  // If this is a Bitcointalk "trust" page or a subpage, do NOT install the emoji toolbar
+  // but ensure any image-upload UI is hidden/disabled to avoid exposing upload functionality.
+  if (isTrustPage()) {
+    try {
+      const HIDE_SELECTORS = [
+        '.ql-image',
+        'button.ql-image',
+        'button[id*="image"]',
+        'button[title*="Image"]',
+        'button[aria-label*="Image"]',
+        'input[type="file"][accept*="image"]',
+        '.insert_image',
+        '.image-upload',
+        '.bt-image-upload'
+      ];
+
+      function hideImageElements(root) {
+        try {
+          const docRoot = root || document;
+          HIDE_SELECTORS.forEach(sel => {
+            try {
+              docRoot.querySelectorAll(sel).forEach(el => {
+                try {
+                  if (el.dataset && el.dataset.__bt_hidden) return;
+                  el.dataset.__bt_hidden = '1';
+                  try { el.__bt_prev_display = el.style.display || ''; } catch (e) { }
+                  try { el.style.display = 'none'; } catch (e) { }
+                  try { el.disabled = true; } catch (e) { }
+                } catch (e) { }
+              });
+            } catch (e) { }
+          });
+        } catch (e) { }
+      }
+
+      hideImageElements(document);
+      // Observe DOM for dynamically-added upload buttons and hide them as they appear
+      try {
+        if (!window.__bt_hide_image_mu) {
+          const mo = new MutationObserver(muts => {
+            for (const m of muts) {
+              if (m.addedNodes && m.addedNodes.length) hideImageElements(m.target || document);
+            }
+          });
+          mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
+          window.__bt_hide_image_mu = mo;
+        }
+      } catch (e) { }
+    } catch (e) { }
+    return;
+  }
+
   window.__bt_emoji_toolbar_installed = true;
 
   // Map filenames -> Unicode (used for insertion)
@@ -35,9 +98,9 @@
 
   function getDefaultToolbarList() {
     return [
-      'smile.png','joy.png','laugh.png','love.png','party.png','thumbs-up.png','thumbs-down.png',
-      'wink.png','evil-grin.png','cool.png','blush.png','bored.png','sleepy.png','innocent.png',
-      'flushed.png','surprised.png','thinking.png','cry.png','sad.png','angry.png'
+      'smile.png', 'joy.png', 'laugh.png', 'love.png', 'party.png', 'thumbs-up.png', 'thumbs-down.png',
+      'wink.png', 'evil-grin.png', 'cool.png', 'blush.png', 'bored.png', 'sleepy.png', 'innocent.png',
+      'flushed.png', 'surprised.png', 'thinking.png', 'cry.png', 'sad.png', 'angry.png'
     ];
   }
 
@@ -95,9 +158,9 @@
       }
       const rect = ta.getBoundingClientRect();
       const isLarge = !!(rect && rect.height && rect.height > 80);
-      try { ta[cacheKey] = isLarge; ta[cacheTimeKey] = now; } catch (e) {}
+      try { ta[cacheKey] = isLarge; ta[cacheTimeKey] = now; } catch (e) { }
       if (isLarge) return true;
-    } catch (e) {}
+    } catch (e) { }
     return false;
   }
 
@@ -226,7 +289,7 @@
   function removeAllToolbars() {
     document.querySelectorAll('.bt-emoji-toolbar').forEach(el => el.remove());
     document.querySelectorAll('textarea').forEach(n => {
-      try { n.__bt_has_toolbar = false; } catch (e) {}
+      try { n.__bt_has_toolbar = false; } catch (e) { }
     });
   }
 
@@ -250,28 +313,28 @@
       removeAllToolbars();
       if (enabled) {
         scanAndAttach(items);
-          if (!window.__bt_toolbar_mu) {
-            // Debounced scanner to avoid heavy work on rapid DOM mutations (reduces reflow/scroll jank)
-            let scanTimer = null;
-            const scheduleScan = (rootNode) => {
-              if (scanTimer) clearTimeout(scanTimer);
-              scanTimer = setTimeout(() => { scanAndAttach(items, rootNode || document); scanTimer = null; }, 120);
-            };
-            const mo = new MutationObserver(muts => {
-              // if many mutations happen, schedule a single scan after quiet period
-              for (const m of muts) {
-                if (m.type === 'childList' && m.addedNodes.length) {
-                  scheduleScan(m.target || document);
-                  return;
-                }
+        if (!window.__bt_toolbar_mu) {
+          // Debounced scanner to avoid heavy work on rapid DOM mutations (reduces reflow/scroll jank)
+          let scanTimer = null;
+          const scheduleScan = (rootNode) => {
+            if (scanTimer) clearTimeout(scanTimer);
+            scanTimer = setTimeout(() => { scanAndAttach(items, rootNode || document); scanTimer = null; }, 120);
+          };
+          const mo = new MutationObserver(muts => {
+            // if many mutations happen, schedule a single scan after quiet period
+            for (const m of muts) {
+              if (m.type === 'childList' && m.addedNodes.length) {
+                scheduleScan(m.target || document);
+                return;
               }
-            });
-            mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
-            window.__bt_toolbar_mu = mo;
-          }
+            }
+          });
+          mo.observe(document.documentElement || document.body, { childList: true, subtree: true });
+          window.__bt_toolbar_mu = mo;
+        }
       } else {
         if (window.__bt_toolbar_mu) {
-          try { window.__bt_toolbar_mu.disconnect(); } catch (e) {}
+          try { window.__bt_toolbar_mu.disconnect(); } catch (e) { }
           window.__bt_toolbar_mu = null;
         }
       }

@@ -175,14 +175,8 @@
             btnDisable.textContent = 'Disable Editor';
             btnDisable.style.cursor = 'pointer';
 
-            const btnDebug = document.createElement('button');
-            btnDebug.id = 'bt-quill-debug';
-            btnDebug.textContent = 'Debug: Show textarea';
-            btnDebug.style.cursor = 'pointer';
-
             container.appendChild(btnEnable);
             container.appendChild(btnDisable);
-            container.appendChild(btnDebug);
 
             textarea.parentNode.insertBefore(container, textarea);
 
@@ -247,19 +241,7 @@
                 updateButtons(false);
             });
 
-            // Debug button prints textarea content to the console
-            btnDebug.addEventListener('click', function (event) {
-                if (event) { event.preventDefault(); event.stopPropagation(); }
-                try {
-                    const ta = document.querySelector('textarea[name="message"]');
-                    if (ta) {
-                        console.log('BT DEBUG: textarea current value:\n', ta.value);
-                        try { alert('Textarea length: ' + ta.value.length + '\n(see console for full content)'); } catch (e) { }
-                    } else {
-                        console.log('BT DEBUG: textarea not found');
-                    }
-                } catch (e) { console.error('BT DEBUG error', e); }
-            });
+            // Debug button removed in this build
 
             // initialize state from storage
             chrome.storage.local.get('quillEnabled', function (res) {
@@ -297,6 +279,89 @@ let prices = {
     btc: 0,
     eth: 0
 };
+
+// Inject a small page-context script to intercept "Insert Quote" clicks
+// and fetch the server-populated textarea; then dispatch a custom event
+// carrying the decoded quote text to the content script.
+try {
+    function injectPageInterceptor() {
+        try {
+            var script = document.createElement('script');
+            script.setAttribute('data-bt-inject', 'insert-quote-interceptor');
+            try {
+                script.src = chrome.runtime.getURL('js/page-inject.js');
+            } catch (e) {
+                // fallback: attempt to use relative path if runtime API not available in this context
+                script.src = '/chrome-extension/' + 'js/page-inject.js';
+            }
+            (document.head || document.documentElement).appendChild(script);
+            setTimeout(function () { try { script.parentNode && script.parentNode.removeChild(script); } catch (e) { } }, 10000);
+        } catch (e) { }
+    }
+
+    // Install handler in content script context to receive quote texts
+    try {
+        var pendingQuotes = [];
+        window.addEventListener('bt-quote-text', function (ev) {
+            try {
+                var txt = ev && ev.detail && ev.detail.text ? ev.detail.text : '';
+                console.log('[BT] bt-quote-text received, length', txt ? txt.length : 0);
+                if (!txt) return;
+
+                // dedupe received quotes (protect against multiple dispatch sources)
+                if (!window.__bt_receivedQuotes) window.__bt_receivedQuotes = new Map();
+                try {
+                    var __bt_now = Date.now();
+                    // purge old entries >10s
+                    for (var k of Array.from(window.__bt_receivedQuotes.keys())) { if (__bt_now - window.__bt_receivedQuotes.get(k) > 10000) window.__bt_receivedQuotes.delete(k); }
+                    var __bt_key = (txt ? txt.length : 0) + '|' + (txt ? txt.slice(0, 120) : '');
+                    if (window.__bt_receivedQuotes.has(__bt_key)) { console.log('[BT] duplicate quote suppressed'); return; }
+                    window.__bt_receivedQuotes.set(__bt_key, __bt_now);
+                } catch (e) { }
+                // Try inserting into Quill if available, otherwise queue
+                try {
+                    var q = window.__bt_quill_instance;
+                    if (q) {
+                        var range = q.getSelection() || { index: q.getLength() };
+                        try { q.insertText(range.index, txt, 'user'); console.log('[BT] inserted into Quill at', range.index); } catch (ie) { q.insertText(q.getLength(), txt); console.log('[BT] inserted into Quill at end'); }
+                        try { q.setSelection((range.index || 0) + (txt.length || 0), 0); q.focus(); } catch (se) { q.focus(); }
+                        return;
+                    }
+                } catch (e) { console.log('[BT] error inserting into Quill', e); }
+                console.log('[BT] Quill not ready, queueing quote');
+                // avoid queuing exact duplicates
+                try {
+                    if (pendingQuotes.indexOf(txt) === -1) pendingQuotes.push(txt);
+                } catch (e) { pendingQuotes.push(txt); }
+            } catch (e) { console.log('[BT] bt-quote-text handler error', e); }
+        }, false);
+
+        // If Quill later initializes, flush pending quotes
+        (function flushPending() {
+            try {
+                var q = window.__bt_quill_instance;
+                if (q && pendingQuotes.length) {
+                    console.log('[BT] flushing', pendingQuotes.length, 'pending quotes into Quill');
+                    // insert and avoid duplicates by tracking insertion keys locally
+                    var inserted = new Set();
+                    pendingQuotes.forEach(function (txt) {
+                        try {
+                            var key = (txt ? txt.length : 0) + '|' + (txt ? txt.slice(0, 120) : '');
+                            if (inserted.has(key)) return;
+                            var range = q.getSelection() || { index: q.getLength() };
+                            q.insertText(range.index, txt, 'user');
+                            inserted.add(key);
+                        } catch (e) { try { q.insertText(q.getLength(), txt); } catch (er) { } }
+                    });
+                    pendingQuotes = [];
+                }
+            } catch (e) { }
+            setTimeout(flushPending, 500);
+        })();
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectPageInterceptor, { once: true }); else injectPageInterceptor();
+    } catch (e) { }
+} catch (e) { }
 
 let ws = null;
 

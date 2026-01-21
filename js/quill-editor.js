@@ -1,6 +1,15 @@
 /* global Quill */
 (function () {
   'use strict';
+  function isTrustPage() {
+    try {
+      var h = location.href || '';
+      var p = location.pathname || '';
+      if (/action=trust(?:[;?&]|$)/i.test(h)) return true;
+      if (/\/trust(?:[/?#]|$)/i.test(p)) return true;
+    } catch (e) { }
+    return false;
+  }
   function createEditorUI(originalTextarea) {
     if (!originalTextarea) return null;
     // Always remove any previous wrapper to ensure fresh state
@@ -213,6 +222,8 @@
     // There's only one button to upload the image, and when uploading the image, only the link is inserted
     // Activate the image upload button only from the original Quill toolbar
     setTimeout(() => {
+      // If on a trust page, don't activate the image upload button
+      if (isTrustPage()) return;
       const quillImageButton = document.querySelector('.ql-image');
       if (quillImageButton) {
         // Remove all default event listeners (if any)
@@ -484,6 +495,11 @@
   }
   function initQuillEditor() {
     try {
+      // Don't initialize the advanced editor on Bitcointalk "trust" pages or subpages
+      if (isTrustPage()) {
+        try { if (typeof window.destroyQuillEditor === 'function') window.destroyQuillEditor(); } catch (e) { }
+        return;
+      }
       // ✅ FIX: Always destroy any previous instance — do NOT rely on __bt_quill_initialized alone
       if (typeof window.destroyQuillEditor === 'function') {
         window.destroyQuillEditor();
@@ -557,19 +573,16 @@
         modules: { toolbar: '#advanced-toolbar' },
         theme: 'snow'
       });
-      // لصق كنص عادي فقط (بدون أي تنسيق)
-      try {
-        if (quill.clipboard && quill.clipboard.addMatcher) {
-          quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {
-            try {
-              delta.ops.forEach(op => {
-                if (op.attributes) delete op.attributes;
-              });
-            } catch (e) { }
-            return delta;
-          });
+      // Paste as plain text only
+      quill.root.addEventListener('paste', function (e) {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain') || '';
+        const range = quill.getSelection();
+        if (range) {
+          quill.insertText(range.index, text, 'user');
+          quill.setSelection(range.index + text.length, 0);
         }
-      } catch (e) { }
+      });
       // Prevent Chrome (and other translators) from translating the editor contents
       try {
         var editorRoot = quill && quill.root ? quill.root : document.querySelector('.ql-editor');
@@ -861,6 +874,169 @@
       } catch (e) { /* ignore if Quill not available or import fails */ }
       // keep reference for external control (destroy)
       try { window.__bt_quill_instance = quill; } catch (e) { }
+
+      // Intercept Bitcointalk's full-page "Insert Quote" links which
+      // reload the page and let the server inject the quote into
+      // <textarea name="message">. Instead of navigating, fetch the
+      // page, extract the server-provided textarea contents and insert
+      // it at the current caret position in the Quill editor. This
+      // targets links that likely represent "Insert Quote" by checking
+      // for action=post + #top and visible text containing "quote" or
+      // the Arabic word for quote to minimize side-effects.
+      try {
+        document.addEventListener('click', function (ev) {
+          try {
+            // Only left-click without modifiers
+            if (ev.button !== 0 || ev.metaKey || ev.altKey || ev.ctrlKey || ev.shiftKey) return;
+
+            var el = ev.target;
+            while (el && el.tagName !== 'A') el = el.parentElement;
+            if (!el) return;
+            var href = el.getAttribute && el.getAttribute('href');
+            if (!href) return;
+
+            var text = (el.textContent || el.title || '').toString().toLowerCase();
+            var looksLikeQuoteText = /quote|insert quote|اقتباس|إدراج اقتباس/.test(text);
+            var onclickAttr = el.getAttribute('onclick') || '';
+            var looksLikeOnclick = /insertQuote/i.test(onclickAttr);
+            var looksLikePostAction = /action=post/i.test(href) && href.indexOf('#top') !== -1;
+
+            if (!looksLikeQuoteText && !looksLikeOnclick && !looksLikePostAction) return;
+
+            // Prevent the normal navigation which reloads the page
+            ev.preventDefault(); ev.stopPropagation();
+
+            (async function () {
+              try {
+                var targetUrl = null;
+
+                // 1) If href looks like the post action, use it
+                if (/action=post/i.test(href)) {
+                  targetUrl = href;
+                }
+
+                // 2) If onclick mentions insertQuote, try to execute it but
+                // intercept navigations by temporarily patching navigation
+                // functions to capture the constructed URL.
+                if (!targetUrl && looksLikeOnclick) {
+                  try {
+                    var capture = null;
+                    var origAssign = window.location.assign;
+                    var origReplace = window.location.replace;
+                    var origOpen = window.open;
+
+                    window.location.assign = function (u) { capture = u; throw new Error('__BT_CAPTURE__'); };
+                    window.location.replace = function (u) { capture = u; throw new Error('__BT_CAPTURE__'); };
+                    window.open = function (u) { capture = u; return { closed: true }; };
+
+                    try {
+                      // Prefer calling the element's onclick handler if present
+                      if (typeof el.onclick === 'function') {
+                        el.onclick(new MouseEvent('click'));
+                      } else {
+                        // Fallback: evaluate attribute as function body
+                        var fn = new Function('event', onclickAttr);
+                        fn.call(el, new MouseEvent('click'));
+                      }
+                    } catch (ex) {
+                      // The injected functions throw to abort navigation; ignore
+                    }
+
+                    // restore
+                    try { window.location.assign = origAssign; } catch (e) { }
+                    try { window.location.replace = origReplace; } catch (e) { }
+                    try { window.open = origOpen; } catch (e) { }
+
+                    if (capture) targetUrl = capture;
+                  } catch (e) {
+                    try { window.location.assign = origAssign; } catch (er) { }
+                    try { window.location.replace = origReplace; } catch (er) { }
+                    try { window.open = origOpen; } catch (er) { }
+                  }
+                }
+
+                // 3) Last resort: try to parse a URL from the onclick string
+                if (!targetUrl && onclickAttr) {
+                  var mUrl = onclickAttr.match(/(index\.php[^'"\)\s]*)/i);
+                  if (mUrl && mUrl[1]) {
+                    var u = mUrl[1];
+                    // make absolute
+                    if (!/^https?:\/\//i.test(u)) {
+                      if (u.charAt(0) === '/') u = location.origin + u;
+                      else u = location.origin + '/' + u;
+                    }
+                    targetUrl = u;
+                  }
+                }
+
+                if (!targetUrl) return;
+
+                // Helper: try fetching a URL and return HTML if it contains the
+                // server-populated textarea[name="message"]
+                async function tryFetchHtml(u) {
+                  try {
+                    var uu = u;
+                    if (!/^https?:\/\//i.test(uu)) {
+                      if (uu.charAt(0) === '/') uu = location.origin + uu;
+                      else uu = location.origin + '/' + uu;
+                    }
+                    var r = await fetch(uu, { credentials: 'same-origin' });
+                    if (!r.ok) return null;
+                    var h = await r.text();
+                    if (/name=["']?message["']?/i.test(h)) return h;
+                    return null;
+                  } catch (e) { return null; }
+                }
+
+                var html = null;
+                if (targetUrl) html = await tryFetchHtml(targetUrl);
+
+                // If onclick referenced insertQuoteFast(msgId) try several
+                // candidate URLs that commonly work on SMF/Bitcointalk.
+                if (!html && looksLikeOnclick) {
+                  var mId = (onclickAttr.match(/insertQuoteFast\((\d+)\)/i) || [])[1];
+                  if (mId) {
+                    var candidates = [
+                      '/index.php?action=post;msg=' + mId + '#top',
+                      '/index.php?action=post;msg=' + mId + ';#top',
+                      '/index.php?action=post;msg=' + mId,
+                      '/index.php?action=post;msg=' + mId + '&preview=1#top',
+                      '/index.php?action=post;topic=' + mId + '#top'
+                    ];
+                    for (var ci = 0; ci < candidates.length && !html; ci++) {
+                      try { html = await tryFetchHtml(candidates[ci]); } catch (e) { }
+                    }
+                  }
+                }
+
+                if (!html) return;
+
+                // Extract the server-populated textarea content
+                var m = html.match(/<textarea[^>]*name=["']?message["']?[^>]*>([\s\S]*?)<\/textarea>/i);
+                var quoted = m && m[1] ? m[1] : '';
+                if (!quoted) return;
+
+                // Decode HTML entities by assigning to a text container
+                var dec = document.createElement('div');
+                dec.innerHTML = quoted;
+                var decoded = dec.textContent || dec.innerText || '';
+
+                var q = window.__bt_quill_instance;
+                if (!q) {
+                  // Fallback: append to original textarea if Quill not present
+                  var ta = document.querySelector('textarea[name="message"]');
+                  if (ta) ta.value = (ta.value ? ta.value + '\n' : '') + decoded;
+                  return;
+                }
+
+                var range = q.getSelection() || { index: q.getLength() };
+                try { q.insertText(range.index, decoded, 'user'); } catch (ie) { q.insertText(q.getLength(), decoded); }
+                try { q.setSelection((range.index || 0) + (decoded.length || 0), 0); q.focus(); } catch (se) { q.focus(); }
+              } catch (err) { console.error('Insert-Quote interception failed', err); }
+            })();
+          } catch (e) { }
+        }, true);
+      } catch (e) { }
       try { quill.format('direction', 'ltr'); quill.format('align', 'left'); } catch (e) { }
       const btnHr = document.getElementById('btn-hr');
       if (btnHr) {
@@ -896,43 +1072,61 @@
           } catch (e) { }
           try { quill.root.insertAdjacentHTML('beforeend', html); return true; } catch (e) { return false; }
         }
-        if (btnTableEl) btnTableEl.addEventListener('click', function () {
-          try {
-            var rows = parseInt(prompt('Number of rows', '2'), 10) || 0;
-            var cols = parseInt(prompt('Number of columns', '2'), 10) || 0;
-            if (rows <= 0 || cols <= 0) return;
-            var html = '<table style="border:1px solid #ccc;border-collapse:collapse;width:100%"><tbody>';
-            for (var r = 0; r < rows; r++) {
-              html += '<tr>';
-              for (var c = 0; c < cols; c++) html += '<td style="border:1px solid #ccc;padding:6px;vertical-align:top">&nbsp;</td>';
-              html += '</tr>';
-            }
-            html += '</tbody></table>';
-            var range = quill.getSelection() || { index: quill.getLength() };
-            quill.focus();
-            var inserted = false;
+        // table button handler with robust fallback insertion
+        (function () {
+          const btnTableEl = document.getElementById('btn-table');
+          function insertHtmlAtIndex(html, index) {
             try {
-              quill.clipboard.dangerouslyPasteHTML(range.index, html);
-              // small timeout to allow DOM changes
-              setTimeout(function () {
-                var found = quill.root.querySelector('table');
-                if (!found) {
-                  // fallback to DOM insertion
-                  inserted = insertHtmlAtIndex(html, range.index);
+              var info = quill.getLeaf(index);
+              var leaf = info && info[0];
+              var node = leaf && leaf.domNode;
+              var parent = node && node.parentNode;
+              var container = document.createElement('div');
+              container.innerHTML = html;
+              if (parent && node) {
+                var ref = node.nextSibling;
+                while (container.firstChild) parent.insertBefore(container.firstChild, ref);
+                return true;
+              }
+            } catch (e) { }
+            try { quill.root.insertAdjacentHTML('beforeend', html); return true; } catch (e) { return false; }
+          }
+          if (btnTableEl) btnTableEl.addEventListener('click', function () {
+            try {
+              // Prompt user for rows and columns
+              var rows = parseInt(prompt('Number of rows', '2'), 10) || 0;
+              var cols = parseInt(prompt('Number of columns', '2'), 10) || 0;
+              if (rows <= 0 || cols <= 0) return;
+
+              // Build BBCode table structure
+              let tableBB = '[table]\n';
+              for (let r = 0; r < rows; r++) {
+                tableBB += '[tr]';
+                for (let c = 0; c < cols; c++) {
+                  tableBB += '[td]...[/td]';
                 }
-                // move caret after table
-                try {
-                  var len = quill.getLength();
-                  quill.setSelection(len, 0);
-                  quill.focus();
-                } catch (e) { }
-              }, 40);
-            } catch (e) {
-              insertHtmlAtIndex(html, range.index);
-              try { quill.setSelection(quill.getLength(), 0); quill.focus(); } catch (err) { }
-            }
-          } catch (e) { }
-        });
+                tableBB += '[/tr]\n';
+              }
+              tableBB += '[/table]';
+
+              // Add a blank line after the table for better formatting
+              const finalBB = tableBB + '\n';
+
+              const range = quill.getSelection() || { index: quill.getLength() };
+              quill.focus();
+
+              // Insert BBCode as plain text (Bitcointalk-compatible)
+              quill.insertText(range.index, finalBB, 'user');
+
+              // Move caret to the end of the inserted content
+              try {
+                quill.setSelection(range.index + finalBB.length, 0);
+                quill.focus();
+              } catch (e) { }
+
+            } catch (e) { }
+          });
+        })();
       })();
       const btnDate = document.getElementById('btn-date');
       if (btnDate) btnDate.addEventListener('click', () => {
