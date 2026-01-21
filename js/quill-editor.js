@@ -573,16 +573,25 @@
         modules: { toolbar: '#advanced-toolbar' },
         theme: 'snow'
       });
-      // Paste as plain text only
-      quill.root.addEventListener('paste', function (e) {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain') || '';
-        const range = quill.getSelection();
-        if (range) {
-          quill.insertText(range.index, text, 'user');
-          quill.setSelection(range.index + text.length, 0);
+      // Paste as plain text only — attach in capture phase to stop other handlers
+      (function () {
+        function handlePaste(e) {
+          try { e.preventDefault(); } catch (err) { }
+          try { e.stopImmediatePropagation(); } catch (err) { }
+          const text = (e.clipboardData && e.clipboardData.getData ? e.clipboardData.getData('text/plain') : '') || '';
+          if (!text) return;
+          const range = quill.getSelection();
+          if (range) {
+            try { quill.history && quill.history.cutoff && quill.history.cutoff(); } catch (err) { }
+            quill.insertText(range.index, text, 'user');
+            quill.setSelection(range.index + text.length, 0);
+            // Defer cutoff to next tick so history records the insert
+            try { setTimeout(function () { try { quill.history && quill.history.cutoff && quill.history.cutoff(); } catch (err) { } }, 0); } catch (err) { }
+          }
         }
-      });
+        try { quill.root.addEventListener('paste', handlePaste, true); } catch (err) { }
+        try { document.addEventListener('paste', handlePaste, true); } catch (err) { }
+      })();
       // Prevent Chrome (and other translators) from translating the editor contents
       try {
         var editorRoot = quill && quill.root ? quill.root : document.querySelector('.ql-editor');
