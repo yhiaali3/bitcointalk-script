@@ -198,10 +198,8 @@
                     event.stopPropagation();
                 }
                 try {
-                    // set without callback to avoid running code inside storage callback (context may be invalidated)
-                    chrome.storage.local.set({ quillEnabled: true });
+                    // Do not persist enable state across pages — keep enabled only for this page session
                 } catch (e) {
-                    // ignore storage errors
                 }
                 // Clean textarea value before initializing editor to avoid accumulated blank lines
                 try {
@@ -235,7 +233,7 @@
                     console.log('BT DEBUG: textarea value on disable:', ta ? ta.value : '(no textarea)');
                 } catch (e) { }
                 try {
-                    chrome.storage.local.set({ quillEnabled: false });
+                    // Do not persist disable state — no storage write to keep default disabled on reload
                 } catch (e) { }
                 try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
                 updateButtons(false);
@@ -243,22 +241,10 @@
 
             // Debug button removed in this build
 
-            // initialize state from storage
-            chrome.storage.local.get('quillEnabled', function (res) {
-                const enabled = !!(res && res.quillEnabled);
-                updateButtons(enabled);
-                if (enabled) {
-                    // If quill assets are not yet injected, retry until available
-                    (function callInit(retries) {
-                        try {
-                            if (window.initQuillEditor) return void window.initQuillEditor();
-                        } catch (e) { }
-                        if (retries > 0) setTimeout(function () { callInit(retries - 1); }, 200);
-                    })(10);
-                } else {
-                    try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
-                }
-            });
+            // Default: keep editor disabled on every page load/refresh.
+            // Do not read or write persistent storage so enabling is per-page only.
+            updateButtons(false);
+            try { if (window.destroyQuillEditor) window.destroyQuillEditor(); } catch (e) { }
         } catch (err) {
             console.warn('quillToggleUI error', err);
         }
